@@ -7,4 +7,6 @@ edition = "2021"
 
 [dependencies]
 web-server-domain = { path = "../web-server-domain" }
+web-server-api = { path = "../web-server-api" }
 async-trait = "0.1.53"
+diesel = { version = "1.4.8", features = ["mysql", "r2d2"] }

@@ -1,3 +1,6 @@
 # ここに環境毎の設定を記載する
 [log]
 level = "debug"
+
+[database]
+url = "mysql://root:web-server-pw@127.0.0.1:3306/web-server"

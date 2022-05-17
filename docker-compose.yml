@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  cache:
+    image: mysql:8.0.27
+    container_name: db
+    ports:
+      - "3306:3306"
+    command: [
+        "--default-authentication-plugin=mysql_native_password" # mysql8系からcaching_sha2_passwordを利用した認証方法になった。mysql client5.x系では、caching_sha2_passwordを使わないので、認証方法を元々のmysql_native_passwordで設定し直している
+    ]
+    environment:
+      MYSQL_ROOT_PASSWORD: 'web-server-pw'
+      MYSQL_DATABASE: 'web-server'

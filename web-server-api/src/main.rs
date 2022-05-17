@@ -1,3 +1,28 @@
+use std::collections::HashMap;
+use std::fmt::format;
+use std::net::SocketAddr;
+use std::thread;
+use std::time::Duration;
+
+use axum::{Json, Router};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use axum::routing::{get, post};
+// use tokio_util::codec;
+// use tokio_util::codec::{BytesCodec, Decoder};
+use serde::{Deserialize, Serialize};
+use signal_hook::consts::{SIGINT, SIGTERM};
+use signal_hook::iterator::{Signals, SignalsInfo};
+use signal_hook::iterator::backend::PollResult::Signal;
+use signal_hook::iterator::exfiltrator::WithOrigin;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
+use tokio::signal::ctrl_c;
+use tokio::signal::unix::signal;
+use tracing::{debug, info};
+
+use crate::signal_handling::Command;
+
 // このmodを定義することでmainのmodule treeに登録している感じ
 mod signal_handling;
 mod server;
@@ -5,29 +30,6 @@ mod route;
 mod hasher;
 mod trace;
 mod setting;
-use std::collections::HashMap;
-use std::fmt::format;
-use std::net::SocketAddr;
-use std::thread;
-use std::time::Duration;
-use axum::{Json, Router};
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
-use axum::routing::{get, post};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
-// use tokio_util::codec;
-// use tokio_util::codec::{BytesCodec, Decoder};
-use serde::{Deserialize, Serialize};
-use signal_hook::consts::{SIGINT, SIGTERM};
-use signal_hook::iterator::backend::PollResult::Signal;
-use signal_hook::iterator::{Signals, SignalsInfo};
-use signal_hook::iterator::exfiltrator::WithOrigin;
-use tokio::signal::ctrl_c;
-use tokio::signal::unix::signal;
-use tracing::{debug, info};
-use crate::signal_handling::Command;
-
 // tokioを使ってweb serverを実装
 // 参考：https://github.com/tokio-rs/tokio/blob/master/examples/echo.rs
 // #[tokio::main]

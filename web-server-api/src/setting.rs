@@ -1,10 +1,11 @@
-use config::{Config, ConfigBuilder, ConfigError, File, FileFormat, FileSourceFile};
+use config::{Config, ConfigError, File, FileFormat};
 use serde::{Deserialize, Serialize};
 use tracing::Level;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Settings {
     pub log: Log,
+    pub database: Database
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -22,6 +23,11 @@ impl Log {
             LogLevel::Debug => Level::DEBUG,
         }
     }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Database {
+    pub url: String
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -59,7 +65,7 @@ impl From<&str> for LogLevel{
 impl Settings {
     pub fn new(env: String) -> Result<Self, ConfigError>{
         let mut builder = Config::builder();
-        let config = builder.add_source(File::new(&format!("src/config/{}.toml", env), FileFormat::Toml)).build();
+        let config = builder.add_source(File::new(&format!("web-server-api/src/config/{}.toml", env), FileFormat::Toml)).build();
         // メソッドの戻り方がSettingsになっているので、deserializeを指定しなくても良い
         config?.try_deserialize()
     }
