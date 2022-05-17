@@ -30,6 +30,7 @@ mod server;
 mod setting;
 mod signal_handling;
 mod trace;
+mod modules;
 // tokioを使ってweb serverを実装
 // 参考：https://github.com/tokio-rs/tokio/blob/master/examples/echo.rs
 // #[tokio::main]

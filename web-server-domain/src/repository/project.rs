@@ -9,3 +9,8 @@ pub trait ProjectRepository {
     async fn update(&self, id: u64, name: String) -> Result<Project, Error>;
     async fn delete(&self, id: u64) -> Result<bool, Error>;
 }
+
+#[async_trait]
+pub trait Test {
+    async fn lists(&self) -> Result<Vec<Project>, Error>;
+}

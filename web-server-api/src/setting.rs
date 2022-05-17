@@ -4,8 +4,7 @@ use tracing::Level;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Settings {
-    pub log: Log,
-    pub database: Database,
+    pub log: Log
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -23,11 +22,6 @@ impl Log {
             LogLevel::Debug => Level::DEBUG,
         }
     }
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Database {
-    pub url: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
