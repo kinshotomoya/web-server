@@ -1,16 +1,16 @@
 mod controllers;
-use std::time::Duration;
-use axum::{Json, Router};
-use axum::routing::{get, post};
-use crate::{IntoResponse, StatusCode};
-use serde::{Deserialize, Serialize};
-use tokio::task;
 use crate::hasher;
 use crate::hasher::create_hash_from;
-use controllers::feature;
-use controllers::async_sync;
 use crate::route::controllers::create_project::create_project;
 use crate::route::controllers::{create_project, healthz};
+use crate::{IntoResponse, StatusCode};
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use controllers::async_sync;
+use controllers::feature;
+use serde::{Deserialize, Serialize};
+use std::time::Duration;
+use tokio::task;
 
 pub fn route() -> Router {
     Router::new()

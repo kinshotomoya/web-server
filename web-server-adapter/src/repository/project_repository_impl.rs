@@ -1,8 +1,8 @@
+use crate::database_repository_impl::DatabaseRepositoryImpl;
+use async_trait::async_trait;
 use web_server_domain::error::Error;
 use web_server_domain::model::project::Project;
 use web_server_domain::repository::project::ProjectRepository;
-use crate::database_repository_impl::DatabaseRepositoryImpl;
-use async_trait::async_trait;
 
 // DatabaseRepositoryImplにProjectRepositoryを実装する
 // もしバックエンドのDBを別DBに差し替える場合にはDatabaseRepositoryImplを差し替えるだけで良い

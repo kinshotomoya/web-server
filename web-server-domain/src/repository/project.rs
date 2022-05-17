@@ -1,6 +1,6 @@
+use crate::error::Error;
 use crate::model::project::Project;
 use async_trait::async_trait;
-use crate::error::Error;
 
 #[async_trait]
 pub trait ProjectRepository {

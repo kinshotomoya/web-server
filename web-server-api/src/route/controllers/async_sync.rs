@@ -7,24 +7,27 @@ pub async fn async_sync() -> String {
         print_thread_info("blocking");
         let hash = hasher::create_hash_from(String::from("hello world"));
         hash
-    }).await;
-
+    })
+    .await;
 
     // ノンブロッキング処理はspawnで非同期所利用スレッドプールにタスク投げる
     // TODO: ノンブロッキングなhttp clientを使ってみようか
     // 各crateの比較：https://blog.logrocket.com/the-state-of-rust-http-clients/
     // hyper公式：https://github.com/hyperium/hyper
-    tokio::task::spawn(async {
-
-    });
+    tokio::task::spawn(async {});
 
     match blocking_res {
         Ok(hash) => hash,
-        Err(_) => String::from("error")
+        Err(_) => String::from("error"),
     }
 }
 
 fn print_thread_info(prefix: &str) {
     let thread_info = std::thread::current();
-    println!("{}-{}-{:?}", prefix, thread_info.name().unwrap_or(""), thread_info.id());
+    println!(
+        "{}-{}-{:?}",
+        prefix,
+        thread_info.name().unwrap_or(""),
+        thread_info.id()
+    );
 }

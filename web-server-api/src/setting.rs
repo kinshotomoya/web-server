@@ -5,12 +5,12 @@ use tracing::Level;
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Settings {
     pub log: Log,
-    pub database: Database
+    pub database: Database,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Log {
-    pub level: String
+    pub level: String,
 }
 
 impl Log {
@@ -27,7 +27,7 @@ impl Log {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Database {
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -49,23 +49,28 @@ impl From<LogLevel> for &str {
     }
 }
 
-impl From<&str> for LogLevel{
+impl From<&str> for LogLevel {
     fn from(log_level: &str) -> Self {
         match log_level {
             "error" => LogLevel::Info,
             "warning" => LogLevel::Warning,
             "info" => LogLevel::Info,
             "debug" => LogLevel::Debug,
-            _ => LogLevel::Error
+            _ => LogLevel::Error,
         }
     }
 }
 
 // 参考: https://docs.rs/config/latest/config/builder/struct.ConfigBuilder.html
 impl Settings {
-    pub fn new(env: String) -> Result<Self, ConfigError>{
+    pub fn new(env: String) -> Result<Self, ConfigError> {
         let mut builder = Config::builder();
-        let config = builder.add_source(File::new(&format!("web-server-api/src/config/{}.toml", env), FileFormat::Toml)).build();
+        let config = builder
+            .add_source(File::new(
+                &format!("web-server-api/src/config/{}.toml", env),
+                FileFormat::Toml,
+            ))
+            .build();
         // メソッドの戻り方がSettingsになっているので、deserializeを指定しなくても良い
         config?.try_deserialize()
     }

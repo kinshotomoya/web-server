@@ -1,9 +1,8 @@
+use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::exfiltrator::WithOrigin;
 use signal_hook::iterator::SignalsInfo;
-use signal_hook::consts::{SIGINT, SIGTERM};
 use tokio::sync::oneshot::Sender;
 use tokio::task::JoinHandle;
-
 
 pub fn signal_handling(tx: Sender<Command>) {
     let mut signals = SignalsInfo::<WithOrigin>::new(&[SIGINT, SIGTERM]).expect("fail signal");
@@ -22,8 +21,8 @@ pub fn signal_handling(tx: Sender<Command>) {
                 // ↓ここでbreakしないと、txのmove問題でコンパイルエラー起きる
                 // sendメソッドはtxの所有権を奪うのでloopで複数かtxは利用できないから
                 break;
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
     handle.close();
@@ -31,5 +30,5 @@ pub fn signal_handling(tx: Sender<Command>) {
 
 #[derive(Debug)]
 pub enum Command {
-    Kill(String)
+    Kill(String),
 }
