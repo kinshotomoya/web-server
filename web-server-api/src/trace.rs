@@ -1,5 +1,5 @@
-use crate::setting::LogLevel;
-use crate::setting::Settings;
+use web_server_domain::setting::LogLevel;
+use web_server_domain::setting::Settings;
 use tracing::metadata::LevelFilter;
 use tracing::{trace, Level};
 use tracing_subscriber::filter::Filtered;

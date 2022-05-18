@@ -20,6 +20,7 @@ use tokio::net::TcpListener;
 use tokio::signal::ctrl_c;
 use tokio::signal::unix::signal;
 use tracing::{debug, info};
+use web_server_domain::setting;
 
 use crate::signal_handling::Command;
 
@@ -27,7 +28,6 @@ use crate::signal_handling::Command;
 mod hasher;
 mod route;
 mod server;
-mod setting;
 mod signal_handling;
 mod trace;
 mod modules;

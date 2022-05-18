@@ -1,7 +1,7 @@
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{r2d2, Connection, MysqlConnection};
 use std::time::Duration;
-use crate::settings::Settings;
+use web_server_domain::setting::Settings;
 
 // r2d2クレートを使ってコネクションプールを管理できるそう
 // マルチスレッド環境をイメージしているので、コネクションプール作って

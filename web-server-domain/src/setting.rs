@@ -4,7 +4,8 @@ use tracing::Level;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Settings {
-    pub log: Log
+    pub log: Log,
+    pub database: Database
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -22,6 +23,13 @@ impl Log {
             LogLevel::Debug => Level::DEBUG,
         }
     }
+}
+
+
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Database {
+    pub url: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -61,7 +69,7 @@ impl Settings {
         let mut builder = Config::builder();
         let config = builder
             .add_source(File::new(
-                &format!("web-server-api/src/config/{}.toml", env),
+                &format!("web-server-domain/src/config/{}.toml", env),
                 FileFormat::Toml,
             ))
             .build();
