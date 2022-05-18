@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::format;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -21,6 +22,7 @@ use tokio::signal::ctrl_c;
 use tokio::signal::unix::signal;
 use tracing::{debug, info};
 use web_server_domain::setting;
+use crate::modules::Modules;
 
 use crate::signal_handling::Command;
 
@@ -89,6 +91,9 @@ async fn main() {
     let env = std::env::var("RUN_ENV").expect("fail to load env");
     let settings = setting::Settings::new(env).expect("fail to load config file");
 
+    // module（usecaseやrepositoryをまとめたもの）の作成
+    let modules = Arc::new(Modules::new(&settings));
+
     // tracingの設定
     trace::setting_trace(&settings);
 
@@ -102,7 +107,7 @@ async fn main() {
 
     // awaitしないとserver起動しない
     // run_serverメソッドはasyncになっていてmainスレッドで待ってあげないと、下の処理に進んでしまう
-    server::run_server(socket, rx).await;
+    server::run_server(socket, rx, modules).await;
     // signal handling threadがちゃんと終わってからmain threadを終わらせるために必要
     // thread::spawnでいう thread.join()と同じ
     signal_handle_thread.await;

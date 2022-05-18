@@ -1,11 +1,12 @@
-use crate::Command;
+use crate::{Command, Modules};
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use tokio::sync::oneshot::Receiver;
 
-pub async fn run_server(socket: SocketAddr, rx: Receiver<Command>) {
-    let app = crate::route::route();
+pub async fn run_server(socket: SocketAddr, rx: Receiver<Command>, modules: Arc<Modules>) {
+    let app = crate::route::route(modules);
     let server = axum::Server::bind(&socket).serve(app.into_make_service());
     let graceful = server.with_graceful_shutdown(async {
         // 引数に渡したfutureのクロージャが完了したらgraceful shutdownされる様な設定
