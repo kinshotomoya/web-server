@@ -18,4 +18,5 @@ pub fn route(modules: Arc<Modules>) -> Router {
         .route("/future", get(feature::future))
         // 参考：https://docs.rs/axum/0.4.8/axum/extract/struct.Extension.html
         .layer(Extension(modules))
+        // TODO: 各ハンドラーからのエラーはどうハンドリングするべき？？
 }
