@@ -7,7 +7,7 @@ use std::sync::Arc;
 // プロセス内で共有するモジュールを格納する
 pub struct Modules {
     // 各ユースケースインスタンス
-    project_usecase: ProjectUsecase<RepositoryImpl>
+    pub project_usecase: ProjectUsecase<RepositoryImpl>
 }
 
 impl Modules {

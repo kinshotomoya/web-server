@@ -21,9 +21,14 @@ pub struct ProjectUsecase<R> where R: Repositories {
 }
 
 impl<R: Repositories> ProjectUsecase<R> {
-    async fn list_project(&self, _name: String) -> Result<Vec<Project>, Error> {
+    pub async fn list_project(&self) -> Result<Vec<Project>, Error> {
         self.repository.project_repository().list().await
     }
+
+    pub async fn create_project(&self, name: String) -> Result<usize, Error> {
+        self.repository.project_repository().create(name).await
+    }
+
 
     pub fn new(repo: R) -> ProjectUsecase<R> {
         Self {

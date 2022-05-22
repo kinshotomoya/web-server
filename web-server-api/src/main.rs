@@ -95,8 +95,7 @@ async fn main() {
     signal_handle_thread.await;
 
     // TODO:
-    //  2. mysqlClient（connection pool）で外部APIを叩けるように
-    //  3. DIできるように
     //  4. actorを実装!!
+    //  5. 別apiとhttpで通信できるように
     //  5. 別スレッドでredisサーバを叩くように
 }
