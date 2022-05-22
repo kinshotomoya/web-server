@@ -1,7 +1,4 @@
-use std::sync::Arc;
 use web_server_domain::repository::project::{ProjectRepository, Test};
-use crate::database_repository_impl::DatabaseRepositoryImpl;
-use crate::persistence::mysql_client::MysqlClient;
 
 // 複数のrepositoryをまとめるモジュール
 pub trait Repositories {

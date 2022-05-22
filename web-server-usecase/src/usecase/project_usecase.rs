@@ -1,7 +1,6 @@
 use web_server_domain::error::Error;
 use web_server_domain::model::project::Project;
 use web_server_domain::repository::project::ProjectRepository;
-use derive_new::new;
 use web_server_adapter::modules::Repositories;
 
 // [メモ]
@@ -22,7 +21,7 @@ pub struct ProjectUsecase<R> where R: Repositories {
 }
 
 impl<R: Repositories> ProjectUsecase<R> {
-    async fn list_project(&self, name: String) -> Result<Vec<Project>, Error> {
+    async fn list_project(&self, _name: String) -> Result<Vec<Project>, Error> {
         self.repository.project_repository().list().await
     }
 

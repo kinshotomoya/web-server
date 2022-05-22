@@ -1,5 +1,5 @@
 use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::{r2d2, Connection, MysqlConnection};
+use diesel::{r2d2, MysqlConnection};
 use std::time::Duration;
 use web_server_domain::setting::Settings;
 
@@ -11,7 +11,7 @@ use web_server_domain::setting::Settings;
 pub struct MysqlClient {
     // mysql driverとしてdieselが一番startが多そう
     // 参考：https://github.com/diesel-rs/diesel
-    pool: Pool<ConnectionManager<MysqlConnection>>,
+    pub pool: Pool<ConnectionManager<MysqlConnection>>,
 }
 
 impl MysqlClient {

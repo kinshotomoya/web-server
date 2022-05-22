@@ -2,7 +2,6 @@ use signal_hook::consts::{SIGINT, SIGTERM};
 use signal_hook::iterator::exfiltrator::WithOrigin;
 use signal_hook::iterator::SignalsInfo;
 use tokio::sync::oneshot::Sender;
-use tokio::task::JoinHandle;
 
 pub fn signal_handling(tx: Sender<Command>) {
     let mut signals = SignalsInfo::<WithOrigin>::new(&[SIGINT, SIGTERM]).expect("fail signal");

@@ -1,21 +1,12 @@
 mod controllers;
 
 use std::sync::Arc;
-use crate::hasher;
-use crate::modules;
-use crate::hasher::create_hash_from;
-use crate::route::controllers::create_project::create_project;
 use crate::route::controllers::{create_project, healthz};
-use crate::{IntoResponse, StatusCode};
 use axum::routing::{get, post};
-use axum::{AddExtension, Json, Router};
+use axum::Router;
 use controllers::async_sync;
 use controllers::feature;
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use axum::extract::Extension;
-use axum::http::Extensions;
-use tokio::task;
 use crate::modules::Modules;
 
 

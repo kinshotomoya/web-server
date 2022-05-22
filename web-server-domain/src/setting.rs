@@ -66,7 +66,7 @@ impl From<&str> for LogLevel {
 // 参考: https://docs.rs/config/latest/config/builder/struct.ConfigBuilder.html
 impl Settings {
     pub fn new(env: String) -> Result<Self, ConfigError> {
-        let mut builder = Config::builder();
+        let builder = Config::builder();
         let config = builder
             .add_source(File::new(
                 &format!("web-server-domain/src/config/{}.toml", env),

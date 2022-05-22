@@ -1,4 +1,4 @@
 pub struct Project {
-    id: u64,
-    name: String,
+    _id: u64,
+    _name: String,
 }

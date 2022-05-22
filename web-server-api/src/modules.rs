@@ -1,9 +1,7 @@
 use web_server_adapter::persistence::mysql_client::MysqlClient;
 use web_server_adapter::repository::RepositoryImpl;
-use web_server_domain::repository::project::ProjectRepository;
 use web_server_domain::setting::Settings;
 use web_server_usecase::usecase::project_usecase::ProjectUsecase;
-use std::string::String;
 use std::sync::Arc;
 
 // プロセス内で共有するモジュールを格納する

@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use web_server_domain::repository::project::{ProjectRepository, Test};
 use crate::database_repository_impl::DatabaseRepositoryImpl;
 use crate::modules::Repositories;
 use crate::persistence::mysql_client::MysqlClient;
@@ -31,7 +30,7 @@ impl RepositoryImpl {
     pub fn new(mysql_client: Arc<MysqlClient>) -> RepositoryImpl {
         RepositoryImpl {
             project_repository: DatabaseRepositoryImpl::new(mysql_client.clone()),
-            test_repository: DatabaseRepositoryImpl::new(mysql_client.clone()),
+            test_repository: DatabaseRepositoryImpl::new(mysql_client),
         }
     }
 }

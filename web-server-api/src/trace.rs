@@ -1,9 +1,6 @@
-use web_server_domain::setting::LogLevel;
 use web_server_domain::setting::Settings;
 use tracing::metadata::LevelFilter;
-use tracing::{trace, Level};
-use tracing_subscriber::filter::Filtered;
-use tracing_subscriber::layer::{Layered, SubscriberExt};
+use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{Layer, Registry};
 
 // tracingの設定を行う

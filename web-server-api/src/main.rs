@@ -1,26 +1,8 @@
-use std::collections::HashMap;
-use std::fmt::format;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
 
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::{get, post};
-use axum::{Json, Router};
-// use tokio_util::codec;
-// use tokio_util::codec::{BytesCodec, Decoder};
-use serde::{Deserialize, Serialize};
-use signal_hook::consts::{SIGINT, SIGTERM};
-use signal_hook::iterator::backend::PollResult::Signal;
-use signal_hook::iterator::exfiltrator::WithOrigin;
-use signal_hook::iterator::{Signals, SignalsInfo};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpListener;
-use tokio::signal::ctrl_c;
-use tokio::signal::unix::signal;
-use tracing::{debug, info};
 use web_server_domain::setting;
 use crate::modules::Modules;
 
