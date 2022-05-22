@@ -5,7 +5,6 @@ use crate::persistence::mysql_client::MysqlClient;
 
 // 複数のrepositoryをまとめるモジュール
 pub trait Repositories {
-    // TODO: 関連型を調べる。よくわかっていない。。
     type ProjectRepo: ProjectRepository;
     type TestRepo: Test;
     fn project_repository(&self) -> &Self::ProjectRepo;

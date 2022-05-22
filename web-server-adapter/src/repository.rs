@@ -12,8 +12,9 @@ pub struct RepositoryImpl {
 }
 
 impl Repositories for RepositoryImpl {
-    // TODO: DatabaseRepositoryImplを実装型として定義しているが、Repositories内ではそれぞれtraitを関連型として定義しているので
-    //  それぞれの型が呼ばれるようになっている？？
+    // traitでは、実装すべき型を定義しておいて
+    // 実際の実装部分（↓ここ）では、↑実装すべき型の実装を定義してあげる
+    // こうすることでtraitをより汎用的に定義できる
     type ProjectRepo = DatabaseRepositoryImpl;
     type TestRepo = DatabaseRepositoryImpl;
 
@@ -26,7 +27,6 @@ impl Repositories for RepositoryImpl {
     }
 }
 
-// TODO: apiのmodulesから呼び出す
 impl RepositoryImpl {
     pub fn new(mysql_client: Arc<MysqlClient>) -> RepositoryImpl {
         RepositoryImpl {

@@ -35,3 +35,13 @@ $ diesel migration run --database-url=$DATABASE_URL
 ```shell
 $ RUN_ENV=development cargo run
 ```
+
+## unit test
+
+```shell
+$ cargo test --workspace
+```
+※ cargo testだけだとrootファイルのものしかtest実行されない
+
+
+cargo-chef
