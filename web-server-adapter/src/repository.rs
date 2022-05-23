@@ -29,8 +29,9 @@ impl Repositories for RepositoryImpl {
 impl RepositoryImpl {
     pub fn new(mysql_client: Arc<MysqlClient>) -> RepositoryImpl {
         RepositoryImpl {
-            project_repository: DatabaseRepositoryImpl::new(mysql_client.clone()),
-            test_repository: DatabaseRepositoryImpl::new(mysql_client),
+            // .clone()ではなく、Arc::clone()にするのがしきたりらしい
+            project_repository: DatabaseRepositoryImpl::new(Arc::clone(&mysql_client)),
+            test_repository: DatabaseRepositoryImpl::new(Arc::clone(&mysql_client)),
         }
     }
 }
