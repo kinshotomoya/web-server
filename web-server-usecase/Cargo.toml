@@ -9,3 +9,4 @@ edition = "2021"
 web-server-domain = { path = "../web-server-domain" }
 web-server-adapter = { path = "../web-server-adapter" }
 derive-new = "0.5.9"
+actix = "0.13.0"
