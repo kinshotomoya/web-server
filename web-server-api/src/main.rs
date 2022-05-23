@@ -15,6 +15,7 @@ mod server;
 mod signal_handling;
 mod trace;
 mod modules;
+mod error_handling;
 // tokioを使ってweb serverを実装
 // 参考：https://github.com/tokio-rs/tokio/blob/master/examples/echo.rs
 // #[tokio::main]

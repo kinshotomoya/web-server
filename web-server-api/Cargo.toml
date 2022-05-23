@@ -20,3 +20,4 @@ tower-http = "0.3.3"
 web-server-usecase = { path = "../web-server-usecase" }
 web-server-adapter = { path = "../web-server-adapter" }
 web-server-domain = { path = "../web-server-domain" }
+thiserror = "1.0.31"

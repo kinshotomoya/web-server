@@ -20,11 +20,11 @@ impl ProjectRepository for DatabaseRepositoryImpl {
 
 
     // 参考: https://github.com/diesel-rs/diesel/tree/v1.4.4/examples/mysql/getting_started_step_2
-    async fn create(&self, project_name: String) -> Result<usize, Error> {
+    async fn create(&self, project_name: String) -> Result<(), Error> {
         let new_project = crate::models::NewProject { name: project_name };
         let conn = self.mysql_client.pool.get().map_err(|e| {Error::MysqlConnectionTimeOut(e.to_string())})?;
         let result = diesel::insert_into(projects::table).values(&new_project).execute(conn.deref()).map_err(|e| {Error::MysqlDatabaseExecutionError(e.to_string())});
-        result
+        result.map(|_| {()})
     }
 
     async fn update(&self, _id: u64, _project_name: String) -> Result<Project, Error> {

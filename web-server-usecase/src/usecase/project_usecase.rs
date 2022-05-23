@@ -25,7 +25,9 @@ impl<R: Repositories> ProjectUsecase<R> {
         self.repository.project_repository().list().await
     }
 
-    pub async fn create_project(&self, name: String) -> Result<usize, Error> {
+    pub async fn create_project(&self, name: String) -> Result<(), Error> {
+        // TODO: バリデーション入れる
+        //  同じ名前があったらcreateしないように
         self.repository.project_repository().create(name).await
     }
 

@@ -1,12 +1,14 @@
 mod controllers;
 
 use std::sync::Arc;
+use axum::error_handling::HandleError;
 use crate::route::controllers::{create_project, healthz};
 use axum::routing::{get, post};
 use axum::Router;
 use controllers::async_sync;
 use controllers::feature;
 use axum::extract::Extension;
+use tracing_subscriber::fmt::layer;
 use crate::modules::Modules;
 
 

@@ -5,7 +5,7 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait ProjectRepository {
     async fn list(&self) -> Result<Vec<Project>, Error>;
-    async fn create(&self, project_name: String) -> Result<usize, Error>;
+    async fn create(&self, project_name: String) -> Result<(), Error>;
     async fn update(&self, id: u64, project_name: String) -> Result<Project, Error>;
     async fn delete(&self, id: u64) -> Result<bool, Error>;
 }

@@ -1342,6 +1342,7 @@ dependencies = [
  "serde",
  "sha2",
  "signal-hook",
+ "thiserror",
  "tokio",
  "tokio-util",
  "tower-http 0.3.3",
