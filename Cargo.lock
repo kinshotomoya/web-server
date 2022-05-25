@@ -1401,6 +1401,7 @@ dependencies = [
 name = "web-server-api"
 version = "0.1.0"
 dependencies = [
+ "actix",
  "axum",
  "base64ct",
  "ctrlc",

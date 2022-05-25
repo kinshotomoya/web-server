@@ -13,6 +13,8 @@ pub enum ErrorResponse {
     MysqlConnectionTimeOut(String),
     #[error("mysql database execution error {0}")]
     MysqlDatabaseExecutionError(String),
+    #[error("supervisor actor mailbox error {0}")]
+    SupervisorActorMailBoxError(String),
 }
 
 impl IntoResponse for ErrorResponse {
@@ -23,6 +25,8 @@ impl IntoResponse for ErrorResponse {
             ErrorResponse::MysqlConnectionTimeOut(message) =>
                 create_response(message, StatusCode::INTERNAL_SERVER_ERROR),
             ErrorResponse::MysqlDatabaseExecutionError(message) =>
+                create_response(message, StatusCode::INTERNAL_SERVER_ERROR),
+            ErrorResponse::SupervisorActorMailBoxError(message) =>
                 create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
@@ -39,7 +43,8 @@ impl From<Error> for ErrorResponse {
         match e {
             Error::NotFount(message) => ErrorResponse::NotFount(message),
             Error::MysqlConnectionTimeOut(message) => ErrorResponse::MysqlConnectionTimeOut(message),
-            Error::MysqlDatabaseExecutionError(message) => ErrorResponse::MysqlDatabaseExecutionError(message)
+            Error::MysqlDatabaseExecutionError(message) => ErrorResponse::MysqlDatabaseExecutionError(message),
+            Error::SupervisorActorMailBoxError(message) => ErrorResponse::SupervisorActorMailBoxError(message)
         }
     }
 }

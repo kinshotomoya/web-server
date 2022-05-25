@@ -3,3 +3,4 @@ pub mod async_sync;
 pub mod create_project;
 pub mod feature;
 pub mod healthz;
+pub mod execute_actor;

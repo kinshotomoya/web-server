@@ -10,6 +10,8 @@ pub enum Error {
     MysqlConnectionTimeOut(String),
     #[error("mysql database execution error {0}")]
     MysqlDatabaseExecutionError(String),
+    #[error("supervisor actor mailbox error {0}")]
+    SupervisorActorMailBoxError(String),
 }
 
 

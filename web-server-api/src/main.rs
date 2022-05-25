@@ -4,7 +4,9 @@ use std::sync::Arc;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use web_server_domain::setting;
+use web_server_usecase::actor::supervisor_actor::SuperVisorActor;
 use crate::modules::Modules;
+use actix::prelude::*;
 
 use crate::signal_handling::Command;
 
@@ -46,7 +48,9 @@ mod error_handling;
 
 // axum sample
 // 参考： https://github.com/tokio-rs/axum/blob/main/examples/readme/src/main.rs
-#[tokio::main]
+// actorを動かすためにactix::mainでactix runtimeを利用
+// tokio::mainではなくて
+#[actix::main]
 async fn main() {
     let socket = SocketAddr::from(([127, 0, 0, 1], 8080));
     // 参考：https://rust-cli.github.io/book/in-depth/signals.html
@@ -76,7 +80,6 @@ async fn main() {
 
     // module（usecaseやrepositoryをまとめたもの）の作成
     let modules = Arc::new(Modules::new(&settings));
-
     // tracingの設定
     trace::setting_trace(&settings);
 
@@ -86,14 +89,18 @@ async fn main() {
 
     // tokio::spawnは別スレッドを作成しているわけではない
     // 非同期タスクを作って、同一スレッドで渡した処理をさせている
-    let signal_handle_thread = tokio::spawn(async move { signal_handling::signal_handling(tx) });
+
+    // actix::mainのruntimeを使うようになったので、シグナルハンドリングは別スレッド（OS thread）で行うように修正
+    let signal_handle_thread = std::thread::spawn( || signal_handling::signal_handling(tx) );
 
     // awaitしないとserver起動しない
     // run_serverメソッドはasyncになっていてmainスレッドで待ってあげないと、下の処理に進んでしまう
     server::run_server(socket, rx, modules).await;
     // signal handling threadがちゃんと終わってからmain threadを終わらせるために必要
     // thread::spawnでいう thread.join()と同じ
-    signal_handle_thread.await;
+
+    // スレッドが終わるのを待つ
+    signal_handle_thread.join();
 
     // TODO:
     //  4. actorを実装!!

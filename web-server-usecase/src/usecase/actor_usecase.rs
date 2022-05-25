@@ -2,40 +2,25 @@
 // actixがgithubスター多そう
 // https://github.com/actix/actix
 
-use actix::Actor;
-use actix::prelude::*;
+use std::sync::Arc;
+use actix::{Actor, Addr, MailboxError};
+use web_server_domain::error::Error;
+use crate::actor::supervisor_actor::{Message, SuperVisorActor};
 
-#[derive(Message)]
-#[rtype(result = "usize")]
-enum Message {
-    // ここにSuperVisorActorへのメッセージを追加していく
-    Ping { count: usize }
+pub struct ActorUsecase {
+    supervisor_actor: Addr<SuperVisorActor>
 }
 
+impl ActorUsecase {
+    pub async fn execute_actor(&self) -> Result<usize, Error>{
+        let res: Result<usize, Error> = self.supervisor_actor.send(Message::Ping {count: 1}).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()));
+        println!("{:?}", res);
+        res
+    }
 
-// 構成 SuperVisorActor → childActor
-//                     ↓ → childActor2
-
-// TODO: state machineにするにはどうする？？
-struct SuperVisorActor {
-    count: usize
-}
-
-impl Actor for SuperVisorActor {
-    type Context = Context<Self>;
-}
-
-impl Handler<Message> for SuperVisorActor {
-    type Result = usize;
-
-    // SuperVisorActorが受け取ったメッセージ毎にこのhandlerメソッドが呼ばれる
-    fn handle(&mut self, msg: Message, ctx: &mut Self::Context) -> Self::Result {
-        // 受け取ったメッセージによって処理を変える
-        match msg {
-            Message::Ping {count} => {
-                self.count += count;
-                self.count
-            }
+    pub fn new(supervisor_actor: Addr<SuperVisorActor>) -> Self {
+        Self{
+            supervisor_actor
         }
     }
 }
