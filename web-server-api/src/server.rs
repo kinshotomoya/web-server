@@ -13,14 +13,14 @@ pub async fn run_server(socket: SocketAddr, rx: Receiver<Command>, modules: Arc<
         // txからのコマンドを待っている
         // 今回はシグナルを待っていたがそれ以外にも終了待ちすべき処理をここに追加する
         match rx.await.ok() {
-            Some(Command::Kill(s)) => println!("get the command: {}", s),
-            None => println!("nothing to do"),
+            Some(Command::Kill(s)) => debug!("get the command: {}", s),
+            None => debug!("nothing to do"),
         }
     });
 
     // graceful shutdownの完了を待っている
     match graceful.await {
-        Ok(_) => println!("graceful shutdown correctly"),
-        Err(e) => eprintln!("{}", e),
+        Ok(_) => debug!("graceful shutdown correctly"),
+        Err(e) => debug!("{}", e),
     }
 }

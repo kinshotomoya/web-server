@@ -2,6 +2,7 @@ use actix::Actor;
 use actix::dev::MessageResponse;
 use actix::prelude::*;
 use tracing::info;
+use web_server_domain::error::Error;
 
 #[derive(Debug, MessageResponse)]
 pub struct ActorResponse {
@@ -9,16 +10,17 @@ pub struct ActorResponse {
 }
 
 #[derive(Message)]
-#[rtype(result = "ActorResponse")]
-pub enum Message {
-    // ここにSuperVisorActorへのメッセージを追加していく
-    Ping { count: usize },
+#[rtype(result = "Result<(), Error>")]
+pub enum InitializeMessage {
+    Initialized,
+    InitializedFailed(String)
 }
 
 #[derive(Message)]
-#[rtype(result = "()")]
-pub enum Idle {
-    Initialized
+#[rtype(result = "ActorResponse")]
+pub enum Message {
+    // ここにSuperVisorActorへのメッセージを追加していく
+    Ping { count: usize }
 }
 
 pub enum State {
@@ -55,6 +57,18 @@ impl SuperVisorActor {
         }
     }
 
+    fn initialize(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
+
+    // actor初期化に必要な処理を行う
+    pub fn initializing(&mut self) -> InitializeMessage {
+        match self.initialize() {
+            Ok(()) => InitializeMessage::Initialized,
+            Err(e) => InitializeMessage::InitializedFailed(e.to_string())
+        }
+    }
+
     fn execute_message(&mut self, msg: Message) -> ActorResponse {
         match msg {
             Message::Ping {count} => {
@@ -76,6 +90,23 @@ impl Actor for SuperVisorActor {
         info!("started supervisor actor");
     }
 
+}
+
+impl Handler<InitializeMessage> for SuperVisorActor {
+    type Result = Result<(), Error>;
+
+    fn handle(&mut self, msg: InitializeMessage, ctx: &mut Self::Context) -> Self::Result {
+        match msg {
+            InitializeMessage::Initialized => {
+                self.state = State::Active;
+                Ok(())
+            },
+            InitializeMessage::InitializedFailed(e) => {
+                ctx.stop();
+                Err(Error::SupervisorActorMailBoxError(e))
+            }
+        }
+    }
 }
 
 impl Handler<Message> for SuperVisorActor {

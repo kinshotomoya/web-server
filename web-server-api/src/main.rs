@@ -80,7 +80,7 @@ async fn main() {
     let settings = setting::Settings::new(env).expect("fail to load config file");
 
     // module（usecaseやrepositoryをまとめたもの）の作成
-    let modules = Arc::new(Modules::new(&settings));
+    let modules = Arc::new(Modules::new(&settings).await);
     // tracingの設定
     trace::setting_trace(&settings);
 

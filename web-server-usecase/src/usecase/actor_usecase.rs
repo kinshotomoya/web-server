@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use actix::{Actor, Addr, MailboxError, Supervisor};
 use web_server_domain::error::Error;
-use crate::actor::supervisor_actor::{ActorResponse, Idle, Message, SuperVisorActor};
+use crate::actor::supervisor_actor::{ActorResponse, Message, SuperVisorActor};
 
 pub struct ActorUsecase {
     supervisor_actor: Addr<SuperVisorActor>

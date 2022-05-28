@@ -12,6 +12,8 @@ pub enum Error {
     MysqlDatabaseExecutionError(String),
     #[error("supervisor actor mailbox error {0}")]
     SupervisorActorMailBoxError(String),
+    #[error("initialize supervisor actor error {0}")]
+    InitializedSupervisorActorError(String)
 }
 
 
