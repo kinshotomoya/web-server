@@ -1,13 +1,13 @@
-use std::sync::Arc;
 use crate::database_repository_impl::DatabaseRepositoryImpl;
 use crate::modules::Repositories;
 use crate::persistence::mysql_client::MysqlClient;
+use std::sync::Arc;
 
 pub mod project_repository_impl;
 
 pub struct RepositoryImpl {
     project_repository: DatabaseRepositoryImpl,
-    test_repository: DatabaseRepositoryImpl
+    test_repository: DatabaseRepositoryImpl,
 }
 
 impl Repositories for RepositoryImpl {

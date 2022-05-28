@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::persistence::mysql_client::MysqlClient;
+use std::sync::Arc;
 
 // ここで参照を持つと↓のようにライフタイム地獄になってしまうので（その他ファイル全てにライフタイムを付与しないといけなくなる）、
 //　Arcで囲ってあげる
@@ -21,6 +21,6 @@ pub struct DatabaseRepositoryImpl {
 
 impl DatabaseRepositoryImpl {
     pub fn new(mysql_client: Arc<MysqlClient>) -> DatabaseRepositoryImpl {
-        DatabaseRepositoryImpl{ mysql_client }
+        DatabaseRepositoryImpl { mysql_client }
     }
 }

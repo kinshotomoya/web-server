@@ -1,9 +1,9 @@
 use axum::body;
 use axum::body::BoxBody;
 use axum::http::StatusCode;
-use axum::response::{Response, IntoResponse};
-use web_server_domain::error::Error;
+use axum::response::{IntoResponse, Response};
 use thiserror::Error;
+use web_server_domain::error::Error;
 
 #[derive(Error, Debug)]
 pub enum ErrorResponse {
@@ -16,22 +16,25 @@ pub enum ErrorResponse {
     #[error("supervisor actor mailbox error {0}")]
     SupervisorActorMailBoxError(String),
     #[error("initialize supervisor actor error {0}")]
-    InitializedSupervisorActorError(String)
+    InitializedSupervisorActorError(String),
 }
 
 impl IntoResponse for ErrorResponse {
     fn into_response(self) -> Response {
         match self {
-            ErrorResponse::NotFount(message) =>
-                create_response(message, StatusCode::NOT_FOUND),
-            ErrorResponse::MysqlConnectionTimeOut(message) =>
-                create_response(message, StatusCode::INTERNAL_SERVER_ERROR),
-            ErrorResponse::MysqlDatabaseExecutionError(message) =>
-                create_response(message, StatusCode::INTERNAL_SERVER_ERROR),
-            ErrorResponse::SupervisorActorMailBoxError(message) =>
-                create_response(message, StatusCode::INTERNAL_SERVER_ERROR),
-            ErrorResponse::InitializedSupervisorActorError(message) =>
-                create_response(message, StatusCode::INTERNAL_SERVER_ERROR),
+            ErrorResponse::NotFount(message) => create_response(message, StatusCode::NOT_FOUND),
+            ErrorResponse::MysqlConnectionTimeOut(message) => {
+                create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            ErrorResponse::MysqlDatabaseExecutionError(message) => {
+                create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            ErrorResponse::SupervisorActorMailBoxError(message) => {
+                create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            ErrorResponse::InitializedSupervisorActorError(message) => {
+                create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
+            }
         }
     }
 }
@@ -46,10 +49,18 @@ impl From<Error> for ErrorResponse {
     fn from(e: Error) -> Self {
         match e {
             Error::NotFount(message) => ErrorResponse::NotFount(message),
-            Error::MysqlConnectionTimeOut(message) => ErrorResponse::MysqlConnectionTimeOut(message),
-            Error::MysqlDatabaseExecutionError(message) => ErrorResponse::MysqlDatabaseExecutionError(message),
-            Error::SupervisorActorMailBoxError(message) => ErrorResponse::SupervisorActorMailBoxError(message),
-            Error::InitializedSupervisorActorError(message) => ErrorResponse::InitializedSupervisorActorError(message)
+            Error::MysqlConnectionTimeOut(message) => {
+                ErrorResponse::MysqlConnectionTimeOut(message)
+            }
+            Error::MysqlDatabaseExecutionError(message) => {
+                ErrorResponse::MysqlDatabaseExecutionError(message)
+            }
+            Error::SupervisorActorMailBoxError(message) => {
+                ErrorResponse::SupervisorActorMailBoxError(message)
+            }
+            Error::InitializedSupervisorActorError(message) => {
+                ErrorResponse::InitializedSupervisorActorError(message)
+            }
         }
     }
 }

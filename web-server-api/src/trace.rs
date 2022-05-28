@@ -1,7 +1,7 @@
-use web_server_domain::setting::Settings;
 use tracing::metadata::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{Layer, Registry};
+use web_server_domain::setting::Settings;
 
 // tracingの設定を行う
 // 環境毎にログレベルを分けている
