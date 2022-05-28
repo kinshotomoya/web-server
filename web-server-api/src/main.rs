@@ -50,6 +50,7 @@ mod error_handling;
 // 参考： https://github.com/tokio-rs/axum/blob/main/examples/readme/src/main.rs
 // actorを動かすためにactix::mainでactix runtimeを利用
 // tokio::mainではなくて
+// actix::mainを覗くと内部ではtokioを使ってruntimeを構築している
 #[actix::main]
 async fn main() {
     let socket = SocketAddr::from(([127, 0, 0, 1], 8080));
@@ -88,7 +89,7 @@ async fn main() {
     let (tx, rx) = tokio::sync::oneshot::channel::<Command>();
 
     // tokio::spawnは別スレッドを作成しているわけではない
-    // 非同期タスクを作って、同一スレッドで渡した処理をさせている
+    // 非同期タスクを作って、workerスレッドで渡した処理をさせている
 
     // actix::mainのruntimeを使うようになったので、シグナルハンドリングは別スレッド（OS thread）で行うように修正
     let signal_handle_thread = std::thread::spawn( || signal_handling::signal_handling(tx) );

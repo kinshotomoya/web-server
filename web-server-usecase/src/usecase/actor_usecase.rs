@@ -3,17 +3,17 @@
 // https://github.com/actix/actix
 
 use std::sync::Arc;
-use actix::{Actor, Addr, MailboxError};
+use actix::{Actor, Addr, MailboxError, Supervisor};
 use web_server_domain::error::Error;
-use crate::actor::supervisor_actor::{Message, SuperVisorActor};
+use crate::actor::supervisor_actor::{ActorResponse, Idle, Message, SuperVisorActor};
 
 pub struct ActorUsecase {
     supervisor_actor: Addr<SuperVisorActor>
 }
 
 impl ActorUsecase {
-    pub async fn execute_actor(&self) -> Result<usize, Error>{
-        let res: Result<usize, Error> = self.supervisor_actor.send(Message::Ping {count: 1}).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()));
+    pub async fn execute_actor(&self) -> Result<ActorResponse, Error>{
+        let res: Result<ActorResponse, Error> = self.supervisor_actor.send(Message::Ping {count: 1}).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()));
         println!("{:?}", res);
         res
     }
