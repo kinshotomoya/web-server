@@ -2,6 +2,7 @@ use actix::Actor;
 use actix::dev::MessageResponse;
 use actix::prelude::*;
 use tracing::info;
+use tracing::log::debug;
 use web_server_domain::error::Error;
 
 #[derive(Debug, MessageResponse)]
@@ -45,7 +46,7 @@ impl Supervised for SuperVisorActor {
     fn restarting(&mut self, ctx: &mut <Self as Actor>::Context) {
         // SuperVisorActorがstopしていたら、このメソッドがよばれ
         // 再度同じアドレスのSuperVisorActorを再起動する
-        info!("restart!!")
+        debug!("restart!!")
     }
 }
 
