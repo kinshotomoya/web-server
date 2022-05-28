@@ -1,14 +1,13 @@
+use std::collections::HashMap;
+use std::sync::Arc;
 use actix::dev::MessageResponse;
 use actix::prelude::*;
 use actix::Actor;
-use tracing::info;
+use tracing::log::info;
 use tracing::log::debug;
 use web_server_domain::error::Error;
+use crate::actor::search_actor::SearchActor;
 
-#[derive(Debug, MessageResponse)]
-pub struct ActorResponse {
-    count: usize,
-}
 
 #[derive(Message)]
 #[rtype(result = "Result<(), Error>")]
@@ -17,11 +16,11 @@ pub enum InitializeMessage {
     InitializedFailed(String),
 }
 
-#[derive(Message)]
-#[rtype(result = "ActorResponse")]
+#[derive(Message, Debug)]
+#[rtype(result = "Result<(), Error>")]
 pub enum Message {
     // ここにSuperVisorActorへのメッセージを追加していく
-    Ping { count: usize },
+    StartSearch { project_id: u64 }
 }
 
 pub enum State {
@@ -35,6 +34,7 @@ pub struct SuperVisorActor {
     count: usize,
     // 状態を持っておけば、finite state machineにできる
     state: State,
+    child_actors: Arc<HashMap<u64, String>>
 }
 
 impl Supervised for SuperVisorActor {
@@ -50,6 +50,7 @@ impl SuperVisorActor {
         Self {
             count: 0,
             state: State::Idle,
+            child_actors: Arc::new(HashMap::new())
         }
     }
 
@@ -65,14 +66,16 @@ impl SuperVisorActor {
         }
     }
 
-    fn execute_message(&mut self, msg: Message) -> ActorResponse {
+    async fn execute_message(msg: Message, reply_to: Arc<Addr<SuperVisorActor>>, child_actors: Arc<HashMap<u64, String>>) -> Result<(), Error> {
         match msg {
-            Message::Ping { count } => {
-                // TODO: こんな感じで、子アクターを作成するメッセージを受け取ったら子アクターを作成する
-                // let rr = SuperVisorActor::new().start();
-                // println!("{:p}", &rr);
-                self.count += count;
-                ActorResponse { count: self.count }
+            Message::StartSearch {project_id} => {
+                // 子アクターをすでに保持していなかったら作成する
+                let mut search_actor = SearchActor::new(project_id, reply_to);
+                let message = search_actor.initializing();
+                let search_actor = Supervisor::start(|_| search_actor);
+                // TODO: searchActorが作成できなかったらエラーを返す.作成できたらOkを返す
+                let a = search_actor.send(message).await;
+                Ok(())
             }
         }
     }
@@ -87,6 +90,7 @@ impl Actor for SuperVisorActor {
     }
 }
 
+// fsmぽくするなら投げられるメッセージ毎にHandlerを実装するしかなさそう
 impl Handler<InitializeMessage> for SuperVisorActor {
     type Result = Result<(), Error>;
 
@@ -105,18 +109,39 @@ impl Handler<InitializeMessage> for SuperVisorActor {
 }
 
 impl Handler<Message> for SuperVisorActor {
-    type Result = ActorResponse;
+    type Result = ResponseActFuture<Self, Result<(), Error>>;
 
     // SuperVisorActorが受け取ったメッセージ毎にこのhandleメソッドが呼ばれる
     fn handle(&mut self, msg: Message, ctx: &mut Self::Context) -> Self::Result {
+        let ctx_address = Arc::new(ctx.address());
+        let actors = self.child_actors.clone();
         // actorの状態によって処理を変える
         match self.state {
             State::Idle => {
                 self.state = State::Active;
-                // ctx.address().send(msg)
-                self.handle(msg, ctx)
+                Box::pin(
+                    async move {
+                        Ok(())
+                    }.into_actor(self).map(|res, _act, _ctx| {
+                        // 自分自身に同じメッセージをもう一回投げている
+                        _ctx.notify(msg);
+                        res
+                    })
+                )
             }
-            State::Active => self.execute_message(msg),
+            State::Active => {
+                // TODO: ここら辺何を表しているか理解する
+                // https://users.rust-lang.org/t/actix-await-for-send-in-handle/47844
+                // https://github.com/actix/actix/issues/438
+                Box::pin(
+                    async move {
+                        SuperVisorActor::execute_message(msg, ctx_address, actors).await;
+                        Ok(())
+                    }.into_actor(self).map(|res, _act, _ctx| {
+                        res
+                    })
+                )
+            },
         }
     }
 }

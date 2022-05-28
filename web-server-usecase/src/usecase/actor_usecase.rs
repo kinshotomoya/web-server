@@ -2,7 +2,7 @@
 // actixがgithubスター多そう
 // https://github.com/actix/actix
 
-use crate::actor::supervisor_actor::{ActorResponse, Message, SuperVisorActor};
+use crate::actor::supervisor_actor::{Message, SuperVisorActor};
 use actix::{Actor, Addr, MailboxError, Supervisor};
 use std::sync::Arc;
 use web_server_domain::error::Error;
@@ -12,10 +12,11 @@ pub struct ActorUsecase {
 }
 
 impl ActorUsecase {
-    pub async fn execute_actor(&self) -> Result<ActorResponse, Error> {
-        let res: Result<ActorResponse, Error> = self
+    // TODO: Resultが二重になっているのでflatにする
+    pub async fn execute_actor(&self) -> Result<Result<(), Error>, Error> {
+        let res: Result<Result<(), Error>, Error> = self
             .supervisor_actor
-            .send(Message::Ping { count: 1 })
+            .send(Message::StartSearch { project_id: 1 })
             .await
             .map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()));
         println!("{:?}", res);
