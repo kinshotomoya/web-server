@@ -69,7 +69,9 @@ impl SuperVisorActor {
     async fn execute_message(msg: Message, reply_to: Arc<Addr<SuperVisorActor>>, child_actors: Arc<HashMap<u64, String>>) -> Result<(), Error> {
         match msg {
             Message::StartSearch {project_id} => {
-                // 子アクターをすでに保持していなかったら作成する
+                // TODO: 子アクターをすでに保持していなかったら作成するロジック
+                //   作成したらHashMapに格納する　＝> ここではできない（Arc<HashMap>になっているので）
+                //   なのでこの関数の戻り値を作成したsearchActorのアドレスとidにする
                 let mut search_actor = SearchActor::new(project_id, reply_to);
                 let message = search_actor.initializing();
                 let search_actor = Supervisor::start(|_| search_actor);
@@ -102,7 +104,7 @@ impl Handler<InitializeMessage> for SuperVisorActor {
             }
             InitializeMessage::InitializedFailed(e) => {
                 ctx.stop();
-                Err(Error::SupervisorActorMailBoxError(e))
+                Err(Error::SupervisorActorMailBoxError(e)) // TODO: エラー定義する
             }
         }
     }
@@ -138,6 +140,7 @@ impl Handler<Message> for SuperVisorActor {
                         SuperVisorActor::execute_message(msg, ctx_address, actors).await;
                         Ok(())
                     }.into_actor(self).map(|res, _act, _ctx| {
+                        // TODO: 作成したsearchActorをHashMapに格納する
                         res
                     })
                 )
