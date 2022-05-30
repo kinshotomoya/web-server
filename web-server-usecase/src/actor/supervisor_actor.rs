@@ -120,6 +120,8 @@ impl Handler<Message> for SuperVisorActor {
     type Result = ResponseActFuture<Self, Result<(), Error>>;
 
     // SuperVisorActorが受け取ったメッセージ毎にこのhandleメソッドが呼ばれる
+    // TODO: コンパイルは通ったが、一回メッセージを投げると返って来なくなった。。。
+    //  原因を調べる
     fn handle(&mut self, msg: Message, ctx: &mut Self::Context) -> Self::Result {
         println!("{:?}", self.child_actors);
         let ctx_address = Arc::new(ctx.address());
