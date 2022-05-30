@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use actix::dev::MessageResponse;
 use actix::prelude::*;
 use actix::Actor;
@@ -34,7 +34,7 @@ pub struct SuperVisorActor {
     count: usize,
     // 状態を持っておけば、finite state machineにできる
     state: State,
-    child_actors: Arc<HashMap<u64, String>>
+    child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>> // NOTE: Arcで包んだ参照を可変参照にするには、Mutexで包んであげる必要がある。lockして他のスレッドから参照されないようにする必要がある
 }
 
 impl Supervised for SuperVisorActor {
@@ -50,7 +50,7 @@ impl SuperVisorActor {
         Self {
             count: 0,
             state: State::Idle,
-            child_actors: Arc::new(HashMap::new())
+            child_actors: Arc::new(Mutex::new(HashMap::new()))
         }
     }
 
@@ -66,18 +66,24 @@ impl SuperVisorActor {
         }
     }
 
-    async fn execute_message(msg: Message, reply_to: Arc<Addr<SuperVisorActor>>, child_actors: Arc<HashMap<u64, String>>) -> Result<(), Error> {
+    async fn execute_message(msg: Message, reply_to: Arc<Addr<SuperVisorActor>>, child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>>) -> Result<(), Error> {
         match msg {
             Message::StartSearch {project_id} => {
-                // TODO: 子アクターをすでに保持していなかったら作成するロジック
+                // 子アクターをすでに保持していなかったら作成するロジック
                 //   作成したらHashMapに格納する　＝> ここではできない（Arc<HashMap>になっているので）
                 //   なのでこの関数の戻り値を作成したsearchActorのアドレスとidにする
-                let mut search_actor = SearchActor::new(project_id, reply_to);
-                let message = search_actor.initializing();
-                let search_actor = Supervisor::start(|_| search_actor);
-                // TODO: searchActorが作成できなかったらエラーを返す.作成できたらOkを返す
-                let a = search_actor.send(message).await;
-                Ok(())
+                let mut locked_map = child_actors.lock().unwrap();
+                match child_actors.lock().unwrap().get(&project_id) {
+                    Some(_) => Ok(()),
+                    None => {
+                        let mut search_actor = SearchActor::new(project_id, reply_to);
+                        let message = search_actor.initializing();
+                        let search_actor = Supervisor::start(|_| search_actor);
+                        let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
+                        locked_map.insert(project_id, search_actor);
+                        res
+                    },
+                }
             }
         }
     }
@@ -104,7 +110,7 @@ impl Handler<InitializeMessage> for SuperVisorActor {
             }
             InitializeMessage::InitializedFailed(e) => {
                 ctx.stop();
-                Err(Error::SupervisorActorMailBoxError(e)) // TODO: エラー定義する
+                Err(Error::InitializedSupervisorActorError(e)) // TODO: エラー定義する
             }
         }
     }
@@ -115,6 +121,7 @@ impl Handler<Message> for SuperVisorActor {
 
     // SuperVisorActorが受け取ったメッセージ毎にこのhandleメソッドが呼ばれる
     fn handle(&mut self, msg: Message, ctx: &mut Self::Context) -> Self::Result {
+        println!("{:?}", self.child_actors);
         let ctx_address = Arc::new(ctx.address());
         let actors = self.child_actors.clone();
         // actorの状態によって処理を変える
@@ -137,11 +144,9 @@ impl Handler<Message> for SuperVisorActor {
                 // https://github.com/actix/actix/issues/438
                 Box::pin(
                     async move {
-                        SuperVisorActor::execute_message(msg, ctx_address, actors).await;
-                        Ok(())
+                        SuperVisorActor::execute_message(msg, ctx_address, actors).await
                     }.into_actor(self).map(|res, _act, _ctx| {
-                        // TODO: 作成したsearchActorをHashMapに格納する
-                        res
+                        Ok(())
                     })
                 )
             },
