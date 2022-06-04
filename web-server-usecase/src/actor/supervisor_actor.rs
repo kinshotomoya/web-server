@@ -73,7 +73,7 @@ impl SuperVisorActor {
                 //   作成したらHashMapに格納する　＝> ここではできない（Arc<HashMap>になっているので）
                 //   なのでこの関数の戻り値を作成したsearchActorのアドレスとidにする
                 let mut locked_map = child_actors.lock().unwrap();
-                match child_actors.lock().unwrap().get(&project_id) {
+                match locked_map.get(&project_id) {
                     Some(_) => Ok(()),
                     None => {
                         let mut search_actor = SearchActor::new(project_id, reply_to);
@@ -81,6 +81,7 @@ impl SuperVisorActor {
                         let search_actor = Supervisor::start(|_| search_actor);
                         let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
                         locked_map.insert(project_id, search_actor);
+                        println!("{}", locked_map.len());
                         res
                     },
                 }
@@ -117,15 +118,13 @@ impl Handler<InitializeMessage> for SuperVisorActor {
 }
 
 impl Handler<Message> for SuperVisorActor {
+    // acto・コンテキスト内にアクセスしたい場合には、ResponseFutureではなくResponseActFutureを戻り方として定義する
     type Result = ResponseActFuture<Self, Result<(), Error>>;
 
     // SuperVisorActorが受け取ったメッセージ毎にこのhandleメソッドが呼ばれる
-    // TODO: コンパイルは通ったが、一回メッセージを投げると返って来なくなった。。。
-    //  原因を調べる
     fn handle(&mut self, msg: Message, ctx: &mut Self::Context) -> Self::Result {
-        println!("{:?}", self.child_actors);
         let ctx_address = Arc::new(ctx.address());
-        let actors = self.child_actors.clone();
+        let child_actors = self.child_actors.clone();
         // actorの状態によって処理を変える
         match self.state {
             State::Idle => {
@@ -135,6 +134,7 @@ impl Handler<Message> for SuperVisorActor {
                         Ok(())
                     }.into_actor(self).map(|res, _act, _ctx| {
                         // 自分自身に同じメッセージをもう一回投げている
+                        // ResponseActFutureを使うことで、↓のようにcontextを利用できる
                         _ctx.notify(msg);
                         res
                     })
@@ -146,9 +146,10 @@ impl Handler<Message> for SuperVisorActor {
                 // https://github.com/actix/actix/issues/438
                 Box::pin(
                     async move {
-                        SuperVisorActor::execute_message(msg, ctx_address, actors).await
+                        // ここで何かしらの非同期処理を行う
+                        SuperVisorActor::execute_message(msg, ctx_address, child_actors).await
                     }.into_actor(self).map(|res, _act, _ctx| {
-                        Ok(())
+                        res
                     })
                 )
             },
