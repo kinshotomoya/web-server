@@ -5,6 +5,7 @@
 use crate::actor::supervisor_actor::{Message, SuperVisorActor};
 use actix::{Actor, Addr, MailboxError, Supervisor};
 use std::sync::Arc;
+use tracing::debug;
 use web_server_domain::error::Error;
 
 pub struct ActorUsecase {
@@ -19,7 +20,7 @@ impl ActorUsecase {
             .send(Message::StartSearch { project_id })
             .await
             .map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()));
-        println!("{:?}", res);
+        debug!("{:?}", res);
         res
     }
 

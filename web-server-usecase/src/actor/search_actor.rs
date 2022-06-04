@@ -1,9 +1,11 @@
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use actix::{Actor, Addr};
 use crate::actor::supervisor_actor::{State, SuperVisorActor};
 use actix::prelude::*;
 use tracing::debug;
 use web_server_domain::error::Error;
+use crate::actor::{search_actor, supervisor_actor};
 use crate::actor::search_actor::InitializeMessage::Initialized;
 
 
@@ -16,24 +18,31 @@ pub enum InitializeMessage {
 
 
 #[derive(Message)]
-#[rtype(result = "()")]
+#[rtype(result = "Result<(), Error>")]
 pub enum Message {
     Execute { project_id: u64 }
 }
+
+// TODO: こいつの生存時間を有限にしたい
+//  akka actorのようにtimerの設定はないので
+//  別actor(timerActorみたいな)を作って定期的に有効期限切れじゃないかどうかを確かめるアクターを作るのが良さそう
 
 // project_idに紐ずく複数クエリで検索エンジンに検索をかけにいくactor
 pub struct SearchActor {
     project_id: u64, // プロジェクト毎にこのアクターを生成する
     state: State,
-    reply_to: Arc<Addr<SuperVisorActor>> // 処理が終わったらSuperVisorActorに終了メッセージを投げる必要がある
+    reply_to: Arc<Addr<SuperVisorActor>>, // 処理が終わったらSuperVisorActorに終了メッセージを投げる必要がある
+    last_started_at: Instant // ここで時間をもっていても何をトリガーに生存期間を過ぎたかどうかを判断するべきか？？
 }
 
 impl SearchActor {
     pub fn new(project_id: u64, reply_to: Arc<Addr<SuperVisorActor>>) -> Self {
+        let when = std::time::Instant::now() + Duration::from_secs(600);
         Self {
             project_id,
             state: State::Idle,
-            reply_to
+            reply_to,
+            last_started_at: when
         }
     }
 
@@ -73,11 +82,39 @@ impl Handler<InitializeMessage> for SearchActor{
     }
 }
 
-
-impl Handler<Message> for SearchActor{
-    type Result = ();
+impl Handler<Message> for SearchActor {
+    type Result = ResponseActFuture<Self, Result<(), Error>>;
 
     fn handle(&mut self, msg: Message, ctx: &mut Self::Context) -> Self::Result {
-        todo!()
+        match self.state {
+            State::Idle => {
+                self.state = State::Active;
+                Box::pin(
+                    async {
+                        Ok(())
+                    }.into_actor(self).map(|res, actor, ctx| {
+                        ctx.notify(msg);
+                        res
+                    })
+                )
+            },
+            State::Active => {
+                match msg {
+                    Message::Execute {project_id} => {
+                        let reply_to = Arc::clone(&self.reply_to);
+                        Box::pin(
+                            async move {
+                                // 処理が終わった後に以下コマンドを打ち込む
+                                debug!("search actor execute!");
+                                reply_to.send(supervisor_actor::Message::CompletedSearch).await;
+                                Ok(())
+                            }.into_actor(self).map(|res, actor, ctx| {
+                                res
+                            })
+                        )
+                    }
+                }
+            }
+        }
     }
 }

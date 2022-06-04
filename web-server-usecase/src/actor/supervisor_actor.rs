@@ -3,9 +3,10 @@ use std::sync::{Arc, Mutex};
 use actix::dev::MessageResponse;
 use actix::prelude::*;
 use actix::Actor;
-use tracing::log::info;
-use tracing::log::debug;
+use tracing::info;
+use tracing::debug;
 use web_server_domain::error::Error;
+use crate::actor::search_actor;
 use crate::actor::search_actor::SearchActor;
 
 
@@ -20,7 +21,9 @@ pub enum InitializeMessage {
 #[rtype(result = "Result<(), Error>")]
 pub enum Message {
     // ここにSuperVisorActorへのメッセージを追加していく
-    StartSearch { project_id: u64 }
+    StartSearch { project_id: u64 },
+    CompletedSearch,
+    TerminatedChildActor { project_id: u64 }
 }
 
 pub enum State {
@@ -72,16 +75,31 @@ impl SuperVisorActor {
                 //   なのでこの関数の戻り値を作成したsearchActorのアドレスとidにする
                 let mut locked_map = child_actors.lock().unwrap();
                 match locked_map.get(&project_id) {
-                    Some(_) => Ok(()),
+                    Some(search_actor) => {
+                        // TODO: リファクタリング。Noneの場合と合わせてエラーハンドリング等をちゃんと書く
+                        search_actor.send(search_actor::Message::Execute {project_id}).await;
+                        Ok(())
+                    },
                     None => {
                         let mut search_actor = SearchActor::new(project_id, reply_to);
                         let message = search_actor.initializing();
+                        // TODO: arbiterとは？？
                         let search_actor = Supervisor::start(|_| search_actor);
                         let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
+                        search_actor.send(search_actor::Message::Execute {project_id}).await;
                         locked_map.insert(project_id, search_actor);
                         res
                     },
                 }
+            },
+            Message::CompletedSearch => {
+                debug!("complete!");
+                Ok(())
+            },
+            Message::TerminatedChildActor {project_id} => {
+                // TODO: search actorが停止した時の実装
+                //   有効期限切れで停止した時にこのメッセージがsearch actorから投げられる（未実装）
+                Ok(())
             }
         }
     }
@@ -121,7 +139,7 @@ impl Handler<Message> for SuperVisorActor {
     // SuperVisorActorが受け取ったメッセージ毎にこのhandleメソッドが呼ばれる
     fn handle(&mut self, msg: Message, ctx: &mut Self::Context) -> Self::Result {
         let ctx_address = Arc::new(ctx.address());
-        let child_actors = self.child_actors.clone();
+        let child_actors = Arc::clone(&self.child_actors);
         // actorの状態によって処理を変える
         match self.state {
             State::Idle => {
@@ -146,7 +164,7 @@ impl Handler<Message> for SuperVisorActor {
                         // ここで何かしらの非同期処理を行う
                         SuperVisorActor::execute_message(msg, ctx_address, child_actors).await
                     }.into_actor(self).map(|res, act, _ctx| {
-                        println!("{:?}", act.child_actors);
+                        debug!("{:?}", act.child_actors);
                         res
                     })
                 )
