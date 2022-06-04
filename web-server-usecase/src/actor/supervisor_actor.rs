@@ -31,7 +31,6 @@ pub enum State {
 // 構成 SuperVisorActor → childActor
 //                     ↓ → childActor2
 pub struct SuperVisorActor {
-    count: usize,
     // 状態を持っておけば、finite state machineにできる
     state: State,
     child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>> // NOTE: Arcで包んだ参照を可変参照にするには、Mutexで包んであげる必要がある。lockして他のスレッドから参照されないようにする必要がある
@@ -48,7 +47,6 @@ impl Supervised for SuperVisorActor {
 impl SuperVisorActor {
     pub fn new() -> Self {
         Self {
-            count: 0,
             state: State::Idle,
             child_actors: Arc::new(Mutex::new(HashMap::new()))
         }
@@ -81,7 +79,6 @@ impl SuperVisorActor {
                         let search_actor = Supervisor::start(|_| search_actor);
                         let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
                         locked_map.insert(project_id, search_actor);
-                        println!("{}", locked_map.len());
                         res
                     },
                 }
@@ -111,7 +108,7 @@ impl Handler<InitializeMessage> for SuperVisorActor {
             }
             InitializeMessage::InitializedFailed(e) => {
                 ctx.stop();
-                Err(Error::InitializedSupervisorActorError(e)) // TODO: エラー定義する
+                Err(Error::InitializedSupervisorActorError(e))
             }
         }
     }
@@ -148,7 +145,8 @@ impl Handler<Message> for SuperVisorActor {
                     async move {
                         // ここで何かしらの非同期処理を行う
                         SuperVisorActor::execute_message(msg, ctx_address, child_actors).await
-                    }.into_actor(self).map(|res, _act, _ctx| {
+                    }.into_actor(self).map(|res, act, _ctx| {
+                        println!("{:?}", act.child_actors);
                         res
                     })
                 )

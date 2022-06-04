@@ -18,7 +18,7 @@ pub fn route(modules: Arc<Modules>) -> Router {
         .route("/create_project", post(create_project::create_project))
         .route("/async_sync", get(async_sync::async_sync))
         .route("/future", get(feature::future))
-        .route("/actor", get(execute_actor))
+        .route("/actor/:project_id", get(execute_actor))
         // 参考：https://docs.rs/axum/0.4.8/axum/extract/struct.Extension.html
         .layer(Extension(modules))
     // TODO: 各ハンドラーからのエラーはどうハンドリングするべき？？

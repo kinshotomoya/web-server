@@ -13,10 +13,10 @@ pub struct ActorUsecase {
 
 impl ActorUsecase {
     // TODO: Resultが二重になっているのでflatにする
-    pub async fn execute_actor(&self) -> Result<Result<(), Error>, Error> {
+    pub async fn execute_actor(&self, project_id: u64) -> Result<Result<(), Error>, Error> {
         let res: Result<Result<(), Error>, Error> = self
             .supervisor_actor
-            .send(Message::StartSearch { project_id: 1 })
+            .send(Message::StartSearch { project_id })
             .await
             .map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()));
         println!("{:?}", res);
