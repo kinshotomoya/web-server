@@ -9,7 +9,7 @@ use tracing::debug;
 use web_server_domain::error::Error;
 
 pub struct ActorUsecase {
-    supervisor_actor: Addr<SuperVisorActor>,
+    supervisor_actor: Arc<Addr<SuperVisorActor>>,
 }
 
 impl ActorUsecase {
@@ -24,7 +24,7 @@ impl ActorUsecase {
         res
     }
 
-    pub fn new(supervisor_actor: Addr<SuperVisorActor>) -> Self {
+    pub fn new(supervisor_actor: Arc<Addr<SuperVisorActor>>) -> Self {
         Self { supervisor_actor }
     }
 }

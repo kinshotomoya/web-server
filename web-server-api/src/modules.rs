@@ -5,6 +5,7 @@ use web_server_adapter::repository::RepositoryImpl;
 use web_server_domain::error::Error;
 use web_server_domain::setting::Settings;
 use web_server_usecase::actor::supervisor_actor::SuperVisorActor;
+use web_server_usecase::actor::timer_actor::{Message, TimerActor};
 use web_server_usecase::usecase::actor_usecase::ActorUsecase;
 use web_server_usecase::usecase::project_usecase::ProjectUsecase;
 
@@ -23,7 +24,10 @@ impl Modules {
             ProjectUsecase::new(repository_modules);
         let mut supervisor_actor = SuperVisorActor::new();
         let message = supervisor_actor.initializing();
-        let supervisor_actor = Supervisor::start(|_| supervisor_actor);
+        let supervisor_actor = Arc::new(Supervisor::start(|_| supervisor_actor));
+        let mut timer_actor = TimerActor::new();
+        let timer_actor = Supervisor::start(|_| timer_actor);
+        timer_actor.send(Message::CheckSearchActor {supervisor_actor_address: Arc::clone(&supervisor_actor)}).await;
         supervisor_actor
             .send(message)
             .await

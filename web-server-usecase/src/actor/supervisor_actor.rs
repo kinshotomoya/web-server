@@ -23,7 +23,8 @@ pub enum Message {
     // ここにSuperVisorActorへのメッセージを追加していく
     StartSearch { project_id: u64 },
     CompletedSearch,
-    TerminatedChildActor { project_id: u64 }
+    TerminatedChildActor { project_id: u64 },
+    CheckSearchActor // searchActorの生存確認を行うメッセージ。timerActorから投げられる
 }
 
 pub enum State {
@@ -83,7 +84,6 @@ impl SuperVisorActor {
                     None => {
                         let mut search_actor = SearchActor::new(project_id, reply_to);
                         let message = search_actor.initializing();
-                        // TODO: arbiterとは？？
                         let search_actor = Supervisor::start(|_| search_actor);
                         let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
                         search_actor.send(search_actor::Message::Execute {project_id}).await;
@@ -100,7 +100,11 @@ impl SuperVisorActor {
                 // TODO: search actorが停止した時の実装
                 //   有効期限切れで停止した時にこのメッセージがsearch actorから投げられる（未実装）
                 Ok(())
-            }
+            },
+            Message::CheckSearchActor => {
+                debug!("now child actors: {:?}", child_actors);
+                Ok(())
+            } // TODO: 実装
         }
     }
 }
@@ -164,7 +168,6 @@ impl Handler<Message> for SuperVisorActor {
                         // ここで何かしらの非同期処理を行う
                         SuperVisorActor::execute_message(msg, ctx_address, child_actors).await
                     }.into_actor(self).map(|res, act, _ctx| {
-                        debug!("{:?}", act.child_actors);
                         res
                     })
                 )
