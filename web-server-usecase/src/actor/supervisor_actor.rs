@@ -110,13 +110,17 @@ impl SuperVisorActor {
                 res
             },
             Message::LoopExecute{child_actors} => {
+                let mut locked_map = child_actors.lock().unwrap();
+                let key = locked_map.keys().next().copied().unwrap_or(0); // copied()・・・Option<&A> -> Option<A>
+                let search_actor_address = locked_map.get(&key);
+                // search_actor_address.iter().fold()
                 // TODO: 実装
-                // child_actorsから一つ（先頭の？）searchActorを取り出して、そいつにmessageを投げる
+                // search actorにmessageを投げる
                 // その後残りのchild_actorsをLoopExecuteに詰めて、自分自身にmessageを投げる
-                let locked_map = child_actors.lock().unwrap();
-                let key = locked_map.keys().next().unwrap_or(&0);
-                let address = locked_map.get(key);
-                debug!("manage child actors: {:?}", child_actors);
+
+
+                locked_map.remove(&key);
+                debug!("manage child actors: {:?}", locked_map);
                 Ok(())
             }
         }

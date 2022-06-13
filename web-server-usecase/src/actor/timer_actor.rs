@@ -21,7 +21,7 @@ pub enum Message {
 impl TimerActor {
     pub fn new() -> Self {
         Self {
-            interval: Duration::from_secs(1)
+            interval: Duration::from_secs(10)
         }
     }
 }
