@@ -14,4 +14,6 @@ pub enum Error {
     SupervisorActorMailBoxError(String),
     #[error("initialize supervisor actor error {0}")]
     InitializedSupervisorActorError(String),
+    #[error("search actor mailbox error {0}")]
+    SearchActorMailBoxError(String),
 }

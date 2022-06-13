@@ -24,7 +24,8 @@ pub enum Message {
     StartSearch { project_id: u64 },
     CompletedSearch,
     TerminatedChildActor { project_id: u64 },
-    CheckSearchActor // searchActorの生存確認を行うメッセージ。timerActorから投げられる
+    CheckSearchActor, // searchActorの生存確認を行うメッセージ。timerActorから投げられる
+    LoopExecute { child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>> }
 }
 
 pub enum State {
@@ -85,7 +86,7 @@ impl SuperVisorActor {
                         let mut search_actor = SearchActor::new(project_id, reply_to);
                         let message = search_actor.initializing();
                         let search_actor = Supervisor::start(|_| search_actor);
-                        let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
+                        let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SearchActorMailBoxError(e.to_string()))?;
                         search_actor.send(search_actor::Message::Execute {project_id}).await;
                         locked_map.insert(project_id, search_actor);
                         res
@@ -102,9 +103,22 @@ impl SuperVisorActor {
                 Ok(())
             },
             Message::CheckSearchActor => {
-                debug!("now child actors: {:?}", child_actors);
+                // 保持しているsearchActorに生存確認messageを投げる
+                // スレッドを占有しないようにfor文で投げるんじゃなくて、再帰で投げる
+                // 自分自身にmessageを投げる
+                let res: Result<(), Error> = reply_to.send(Message::LoopExecute {child_actors}).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
+                res
+            },
+            Message::LoopExecute{child_actors} => {
+                // TODO: 実装
+                // child_actorsから一つ（先頭の？）searchActorを取り出して、そいつにmessageを投げる
+                // その後残りのchild_actorsをLoopExecuteに詰めて、自分自身にmessageを投げる
+                let locked_map = child_actors.lock().unwrap();
+                let key = locked_map.keys().next().unwrap_or(&0);
+                let address = locked_map.get(key);
+                debug!("manage child actors: {:?}", child_actors);
                 Ok(())
-            } // TODO: 実装
+            }
         }
     }
 }

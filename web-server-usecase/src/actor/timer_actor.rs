@@ -21,7 +21,7 @@ pub enum Message {
 impl TimerActor {
     pub fn new() -> Self {
         Self {
-            interval: Duration::from_secs(10)
+            interval: Duration::from_secs(1)
         }
     }
 }
@@ -44,13 +44,11 @@ impl Handler<Message> for TimerActor{
             Message::CheckSearchActor { supervisor_actor_address } => {
                 // run_intervalでasync functionを実行したいならarbiterスレッドを作成して、そいつにasync taskを投げるようにする
                 ctx.run_interval(self.interval, move |timer_actor, context| {
-                    // 参考：https://users.rust-lang.org/t/await-in-actix-run-interval/39964
-                    //      https://stackoverflow.com/questions/66602940/run-async-function-in-run-interval-and-return-result
-                    let ab = Arbiter::new(); // 新しいイベントループを作成している
+                    // 参考：https://www.reddit.com/r/rust/comments/srfho0/help_with_actix_arbiter/
                     let supervisor_actor_address_clone = Arc::clone(&supervisor_actor_address);
-                    ab.spawn(async move {
+                    context.spawn(async move {
                         supervisor_actor_address_clone.send(supervisor_actor::Message::CheckSearchActor).await;
-                    });
+                    }.into_actor(timer_actor)); // futureをactorにしている
                 });
             }
         }

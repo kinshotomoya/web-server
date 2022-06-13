@@ -17,6 +17,8 @@ pub enum ErrorResponse {
     SupervisorActorMailBoxError(String),
     #[error("initialize supervisor actor error {0}")]
     InitializedSupervisorActorError(String),
+    #[error("search actor mailbox error {0}")]
+    SearchActorMailBoxError(String),
 }
 
 impl IntoResponse for ErrorResponse {
@@ -33,6 +35,9 @@ impl IntoResponse for ErrorResponse {
                 create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
             }
             ErrorResponse::InitializedSupervisorActorError(message) => {
+                create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
+            }
+            ErrorResponse::SearchActorMailBoxError(message) => {
                 create_response(message, StatusCode::INTERNAL_SERVER_ERROR)
             }
         }
@@ -60,6 +65,9 @@ impl From<Error> for ErrorResponse {
             }
             Error::InitializedSupervisorActorError(message) => {
                 ErrorResponse::InitializedSupervisorActorError(message)
+            }
+            Error::SearchActorMailBoxError(message) => {
+                ErrorResponse::SearchActorMailBoxError(message)
             }
         }
     }
