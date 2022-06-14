@@ -27,7 +27,11 @@ impl Modules {
         let supervisor_actor = Arc::new(Supervisor::start(|_| supervisor_actor));
         let mut timer_actor = TimerActor::new();
         let timer_actor = Supervisor::start(|_| timer_actor);
-        timer_actor.send(Message::CheckSearchActor {supervisor_actor_address: Arc::clone(&supervisor_actor)}).await;
+        timer_actor
+            .send(Message::CheckSearchActor {
+                supervisor_actor_address: Arc::clone(&supervisor_actor),
+            })
+            .await;
         supervisor_actor
             .send(message)
             .await

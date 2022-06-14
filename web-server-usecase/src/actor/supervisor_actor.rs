@@ -1,14 +1,13 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use crate::actor::search_actor;
+use crate::actor::search_actor::SearchActor;
 use actix::dev::MessageResponse;
 use actix::prelude::*;
 use actix::Actor;
-use tracing::info;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use tracing::debug;
+use tracing::info;
 use web_server_domain::error::Error;
-use crate::actor::search_actor;
-use crate::actor::search_actor::SearchActor;
-
 
 #[derive(Message)]
 #[rtype(result = "Result<(), Error>")]
@@ -21,11 +20,17 @@ pub enum InitializeMessage {
 #[rtype(result = "Result<(), Error>")]
 pub enum Message {
     // ここにSuperVisorActorへのメッセージを追加していく
-    StartSearch { project_id: u64 },
+    StartSearch {
+        project_id: u64,
+    },
     CompletedSearch,
-    TerminatedChildActor { project_id: u64 },
+    TerminatedChildActor {
+        project_id: u64,
+    },
     CheckSearchActor, // searchActorの生存確認を行うメッセージ。timerActorから投げられる
-    LoopExecute { child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>> }
+    LoopExecute {
+        child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>>,
+    },
 }
 
 pub enum State {
@@ -38,7 +43,7 @@ pub enum State {
 pub struct SuperVisorActor {
     // 状態を持っておけば、finite state machineにできる
     state: State,
-    child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>> // NOTE: Arcで包んだ参照を可変参照にするには、Mutexで包んであげる必要がある。lockして他のスレッドから参照されないようにする必要がある
+    child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>>, // NOTE: Arcで包んだ参照を可変参照にするには、Mutexで包んであげる必要がある。lockして他のスレッドから参照されないようにする必要がある
 }
 
 impl Supervised for SuperVisorActor {
@@ -53,7 +58,7 @@ impl SuperVisorActor {
     pub fn new() -> Self {
         Self {
             state: State::Idle,
-            child_actors: Arc::new(Mutex::new(HashMap::new()))
+            child_actors: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -69,9 +74,13 @@ impl SuperVisorActor {
         }
     }
 
-    async fn execute_message(msg: Message, reply_to: Arc<Addr<SuperVisorActor>>, child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>>) -> Result<(), Error> {
+    async fn execute_message(
+        msg: Message,
+        reply_to: Arc<Addr<SuperVisorActor>>,
+        child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>>,
+    ) -> Result<(), Error> {
         match msg {
-            Message::StartSearch {project_id} => {
+            Message::StartSearch { project_id } => {
                 // 子アクターをすでに保持していなかったら作成するロジック
                 //   作成したらHashMapに格納する　＝> ここではできない（Arc<HashMap>になっているので）
                 //   なのでこの関数の戻り値を作成したsearchActorのアドレスとidにする
@@ -79,48 +88,61 @@ impl SuperVisorActor {
                 match locked_map.get(&project_id) {
                     Some(search_actor) => {
                         // TODO: リファクタリング。Noneの場合と合わせてエラーハンドリング等をちゃんと書く
-                        search_actor.send(search_actor::Message::Execute {project_id}).await;
+                        search_actor
+                            .send(search_actor::Message::Execute { project_id })
+                            .await;
                         Ok(())
-                    },
+                    }
                     None => {
                         let mut search_actor = SearchActor::new(project_id, reply_to);
                         let message = search_actor.initializing();
                         let search_actor = Supervisor::start(|_| search_actor);
-                        let res: Result<(), Error> = search_actor.send(message).await.map_err(|e| Error::SearchActorMailBoxError(e.to_string()))?;
-                        search_actor.send(search_actor::Message::Execute {project_id}).await;
+                        let res: Result<(), Error> = search_actor
+                            .send(message)
+                            .await
+                            .map_err(|e| Error::SearchActorMailBoxError(e.to_string()))?;
+                        search_actor
+                            .send(search_actor::Message::Execute { project_id })
+                            .await;
                         locked_map.insert(project_id, search_actor);
                         res
-                    },
+                    }
                 }
-            },
+            }
             Message::CompletedSearch => {
                 debug!("complete!");
                 Ok(())
-            },
-            Message::TerminatedChildActor {project_id} => {
+            }
+            Message::TerminatedChildActor { project_id } => {
                 // TODO: search actorが停止した時の実装
                 //   有効期限切れで停止した時にこのメッセージがsearch actorから投げられる（未実装）
                 Ok(())
-            },
+            }
             Message::CheckSearchActor => {
                 // 保持しているsearchActorに生存確認messageを投げる
                 // スレッドを占有しないようにfor文で投げるんじゃなくて、再帰で投げる
                 // 自分自身にmessageを投げる
-                let res: Result<(), Error> = reply_to.send(Message::LoopExecute {child_actors}).await.map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
+                let res: Result<(), Error> = reply_to
+                    .send(Message::LoopExecute { child_actors })
+                    .await
+                    .map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))?;
                 res
-            },
-            Message::LoopExecute{child_actors} => {
-                let mut locked_map = child_actors.lock().unwrap();
-                let key = locked_map.keys().next().copied().unwrap_or(0); // copied()・・・Option<&A> -> Option<A>
-                let search_actor_address = locked_map.get(&key);
-                // search_actor_address.iter().fold()
-                // TODO: 実装
-                // search actorにmessageを投げる
-                // その後残りのchild_actorsをLoopExecuteに詰めて、自分自身にmessageを投げる
-
-
-                locked_map.remove(&key);
-                debug!("manage child actors: {:?}", locked_map);
+            }
+            Message::LoopExecute { child_actors } => {
+                // cloneする以外に方法あるかな？？
+                // TODO: 動作確認
+                let child_actors_clone = Arc::clone(&child_actors);
+                let mut locked_map = child_actors_clone.lock().unwrap();
+                if locked_map.len() != 0usize {
+                    let key = locked_map.keys().next().copied().unwrap_or(0); // copied()・・・Option<&A> -> Option<A>
+                    let search_actor_address = locked_map.get(&key);
+                    if let Some(search_actor) = search_actor_address {
+                        search_actor.send(search_actor::Message::CheckRunning).await;
+                        locked_map.remove(&key);
+                    }
+                    debug!("manage child actors: {:?}", locked_map);
+                    reply_to.send(Message::LoopExecute { child_actors }).await;
+                }
                 Ok(())
             }
         }
@@ -167,14 +189,14 @@ impl Handler<Message> for SuperVisorActor {
             State::Idle => {
                 self.state = State::Active;
                 Box::pin(
-                    async move {
-                        Ok(())
-                    }.into_actor(self).map(|res, _act, _ctx| {
-                        // 自分自身に同じメッセージをもう一回投げている
-                        // ResponseActFutureを使うことで、↓のようにcontextを利用できる
-                        _ctx.notify(msg);
-                        res
-                    })
+                    async move { Ok(()) }
+                        .into_actor(self)
+                        .map(|res, _act, _ctx| {
+                            // 自分自身に同じメッセージをもう一回投げている
+                            // ResponseActFutureを使うことで、↓のようにcontextを利用できる
+                            _ctx.notify(msg);
+                            res
+                        }),
                 )
             }
             State::Active => {
@@ -185,11 +207,11 @@ impl Handler<Message> for SuperVisorActor {
                     async move {
                         // ここで何かしらの非同期処理を行う
                         SuperVisorActor::execute_message(msg, ctx_address, child_actors).await
-                    }.into_actor(self).map(|res, act, _ctx| {
-                        res
-                    })
+                    }
+                    .into_actor(self)
+                    .map(|res, act, _ctx| res),
                 )
-            },
+            }
         }
     }
 }

@@ -1,13 +1,12 @@
+use crate::actor::search_actor::InitializeMessage::Initialized;
+use crate::actor::supervisor_actor::{State, SuperVisorActor};
+use crate::actor::{search_actor, supervisor_actor};
+use actix::prelude::*;
+use actix::{Actor, Addr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use actix::{Actor, Addr};
-use crate::actor::supervisor_actor::{State, SuperVisorActor};
-use actix::prelude::*;
 use tracing::debug;
 use web_server_domain::error::Error;
-use crate::actor::{search_actor, supervisor_actor};
-use crate::actor::search_actor::InitializeMessage::Initialized;
-
 
 #[derive(Message)]
 #[rtype(result = "Result<(), Error>")]
@@ -16,11 +15,11 @@ pub enum InitializeMessage {
     InitializedFailed(String),
 }
 
-
 #[derive(Message)]
 #[rtype(result = "Result<(), Error>")]
 pub enum Message {
-    Execute { project_id: u64 }
+    Execute { project_id: u64 },
+    CheckRunning,
 }
 
 // TODO: こいつの生存時間を有限にしたい
@@ -32,7 +31,7 @@ pub struct SearchActor {
     project_id: u64, // プロジェクト毎にこのアクターを生成する
     state: State,
     reply_to: Arc<Addr<SuperVisorActor>>, // 処理が終わったらSuperVisorActorに終了メッセージを投げる必要がある
-    last_started_at: Instant // ここで時間をもっていても何をトリガーに生存期間を過ぎたかどうかを判断するべきか？？
+    last_started_at: Instant, // ここで時間をもっていても何をトリガーに生存期間を過ぎたかどうかを判断するべきか？？
 }
 
 impl SearchActor {
@@ -42,7 +41,7 @@ impl SearchActor {
             project_id,
             state: State::Idle,
             reply_to,
-            last_started_at: when
+            last_started_at: when,
         }
     }
 
@@ -54,7 +53,7 @@ impl SearchActor {
     pub fn initializing(&mut self) -> InitializeMessage {
         match self.initialize() {
             Ok(()) => InitializeMessage::Initialized,
-            Err(e) => InitializeMessage::InitializedFailed(e.to_string())
+            Err(e) => InitializeMessage::InitializedFailed(e.to_string()),
         }
     }
 }
@@ -68,7 +67,7 @@ impl Actor for SearchActor {
     type Context = Context<Self>;
 }
 
-impl Handler<InitializeMessage> for SearchActor{
+impl Handler<InitializeMessage> for SearchActor {
     type Result = Result<(), Error>;
 
     fn handle(&mut self, msg: InitializeMessage, ctx: &mut Self::Context) -> Self::Result {
@@ -76,8 +75,10 @@ impl Handler<InitializeMessage> for SearchActor{
             InitializeMessage::Initialized => {
                 self.state = State::Active;
                 Ok(())
-            },
-            InitializeMessage::InitializedFailed(e) => Err(Error::InitializedSupervisorActorError(e))
+            }
+            InitializeMessage::InitializedFailed(e) => {
+                Err(Error::InitializedSupervisorActorError(e))
+            }
         }
     }
 }
@@ -89,28 +90,38 @@ impl Handler<Message> for SearchActor {
         match self.state {
             State::Idle => {
                 self.state = State::Active;
-                Box::pin(
-                    async {
-                        Ok(())
-                    }.into_actor(self).map(|res, actor, ctx| {
-                        ctx.notify(msg);
-                        res
-                    })
-                )
-            },
+                Box::pin(async { Ok(()) }.into_actor(self).map(|res, actor, ctx| {
+                    ctx.notify(msg);
+                    res
+                }))
+            }
             State::Active => {
                 match msg {
-                    Message::Execute {project_id} => {
+                    Message::Execute { project_id } => {
                         let reply_to = Arc::clone(&self.reply_to);
                         Box::pin(
                             async move {
                                 // 処理が終わった後に以下コマンドを打ち込む
                                 debug!("search actor execute!");
-                                reply_to.send(supervisor_actor::Message::CompletedSearch).await;
+                                reply_to
+                                    .send(supervisor_actor::Message::CompletedSearch)
+                                    .await;
                                 Ok(())
-                            }.into_actor(self).map(|res, actor, ctx| {
-                                res
-                            })
+                            }
+                            .into_actor(self)
+                            .map(|res, actor, ctx| res),
+                        )
+                    }
+                    Message::CheckRunning => {
+                        // TODO: 処理するmessageが存在するかどうかをチェックする
+                        // なければ↓を実行して、supervisorActorにTerminatedChildActor messageを投げる
+                        // ctx.stop();
+                        Box::pin(
+                            async move {
+                                debug!("check");
+                            }
+                            .into_actor(self)
+                            .map(|res, actor, ctx| Ok(())),
                         )
                     }
                 }
