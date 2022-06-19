@@ -26,6 +26,7 @@ pub enum Message {
     CompletedSearch,
     TerminatedChildActor {
         project_id: u64,
+        reply_to: Arc<Addr<SearchActor>>
     },
     CheckSearchActor, // searchActorの生存確認を行うメッセージ。timerActorから投げられる
     LoopExecute {
@@ -96,6 +97,9 @@ impl SuperVisorActor {
                     None => {
                         let mut search_actor = SearchActor::new(project_id, reply_to);
                         let message = search_actor.initializing();
+                        // NOTE: cpu boundな計算をするときは、そのactorをSyncArbiter::startで別スレッドで実行するべき！
+                        // 参考：https://actix.rs/book/actix/sec-5-arbiter.html#system-and-arbiter
+                        // let search_actor = SyncArbiter::start(1, search_actor);
                         let search_actor = Supervisor::start(|_| search_actor);
                         let res: Result<(), Error> = search_actor
                             .send(message)
@@ -113,15 +117,20 @@ impl SuperVisorActor {
                 debug!("complete!");
                 Ok(())
             }
-            Message::TerminatedChildActor { project_id } => {
+            Message::TerminatedChildActor { project_id, reply_to } => {
                 // TODO: search actorが停止した時の実装
                 //   有効期限切れで停止した時にこのメッセージがsearch actorから投げられる（未実装）
+                debug!("cdcddcdcdc");
+                // reply_to.send()
                 Ok(())
             }
             Message::CheckSearchActor => {
                 // 保持しているsearchActorに生存確認messageを投げる
                 // スレッドを占有しないようにfor文で投げるんじゃなくて、再帰で投げる
                 // 自分自身にmessageを投げる
+                // TODO: なぜclonedしたらcollect()できるようになったのか理解する
+                // TODO: child_actorssをloopExecute messageに投げてそっから再帰するようにする
+                let child_actorss: Vec<Addr<SearchActor>> = child_actors.lock().unwrap().values().cloned().collect();
                 let res: Result<(), Error> = reply_to
                     .send(Message::LoopExecute { child_actors })
                     .await
@@ -137,6 +146,7 @@ impl SuperVisorActor {
                     let search_actor_address = locked_map.get(&key);
                     if let Some(search_actor) = search_actor_address {
                         search_actor.send(search_actor::Message::CheckRunning).await;
+                        // TODO: ここでremoveしてしまうとcheckRunningでまだ動作中のsearchActorまで消してしまうことになる。。
                         locked_map.remove(&key);
                     }
                     drop(locked_map);

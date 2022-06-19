@@ -5,7 +5,8 @@ use actix::prelude::*;
 use actix::{Actor, Addr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tracing::debug;
+use actix::dev::AsyncContextParts;
+use tracing::{debug, Instrument};
 use web_server_domain::error::Error;
 
 #[derive(Message)]
@@ -21,10 +22,6 @@ pub enum Message {
     Execute { project_id: u64 },
     CheckRunning,
 }
-
-// TODO: こいつの生存時間を有限にしたい
-//  akka actorのようにtimerの設定はないので
-//  別actor(timerActorみたいな)を作って定期的に有効期限切れじゃないかどうかを確かめるアクターを作るのが良さそう
 
 // project_idに紐ずく複数クエリで検索エンジンに検索をかけにいくactor
 pub struct SearchActor {
@@ -113,15 +110,20 @@ impl Handler<Message> for SearchActor {
                         )
                     }
                     Message::CheckRunning => {
-                        // TODO: 処理するmessageが存在するかどうかをチェックする
-                        // なければ↓を実行して、supervisorActorにTerminatedChildActor messageを投げる
-                        // ctx.stop();
+                        let reply_to = Arc::clone(&self.reply_to);
+                        let project_id = self.project_id;
+                        debug!("search-actor: {:?}-{:?}", std::thread::current().name(), std::thread::current().id());
+                        let message_count = ctx.parts().curr_handle().into_usize();
+                        let search_actor_address = Arc::new(ctx.address());
                         Box::pin(
                             async move {
-                                debug!("check");
+                                debug!("message_count: {}", message_count);
+                                if message_count == 0usize {
+                                    reply_to.send(supervisor_actor::Message::TerminatedChildActor {project_id, reply_to: search_actor_address}).await;
+                                }
                             }
                             .into_actor(self)
-                            .map(|res, actor, ctx| Ok(())),
+                            .map(|res, actor, ctx| Ok(res)),
                         )
                     }
                 }
