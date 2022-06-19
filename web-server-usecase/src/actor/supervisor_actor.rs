@@ -129,19 +129,22 @@ impl SuperVisorActor {
                 res
             }
             Message::LoopExecute { child_actors } => {
-                // cloneする以外に方法あるかな？？
-                // TODO: 動作確認
                 let child_actors_clone = Arc::clone(&child_actors);
                 let mut locked_map = child_actors_clone.lock().unwrap();
                 if locked_map.len() != 0usize {
+                    debug!("manage child actors: {:?}", locked_map);
                     let key = locked_map.keys().next().copied().unwrap_or(0); // copied()・・・Option<&A> -> Option<A>
                     let search_actor_address = locked_map.get(&key);
                     if let Some(search_actor) = search_actor_address {
                         search_actor.send(search_actor::Message::CheckRunning).await;
                         locked_map.remove(&key);
                     }
-                    debug!("manage child actors: {:?}", locked_map);
+                    drop(locked_map);
+                    // NOTE: ↓でさらにLoopExecute messageを投げることで、locked_mapがdead lockを起こしていたので、スレッドが止まってしまっていた。
+                    // 明示的にlockを解消するためにdropさせている。
                     reply_to.send(Message::LoopExecute { child_actors }).await;
+                } else {
+                    debug!("child actor count is zero");
                 }
                 Ok(())
             }
