@@ -1,11 +1,11 @@
 use crate::actor::search_actor::InitializeMessage::Initialized;
 use crate::actor::supervisor_actor::{State, SuperVisorActor};
 use crate::actor::{search_actor, supervisor_actor};
+use actix::dev::AsyncContextParts;
 use actix::prelude::*;
 use actix::{Actor, Addr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use actix::dev::AsyncContextParts;
 use tracing::{debug, Instrument};
 use web_server_domain::error::Error;
 
@@ -20,7 +20,18 @@ pub enum InitializeMessage {
 #[rtype(result = "Result<(), Error>")]
 pub enum Message {
     Execute { project_id: u64 },
-    CheckRunning,
+}
+
+#[derive(Message)]
+#[rtype(result = "Result<SearchActorStatus, Error>")]
+pub enum CheckStatusMessage {
+    Check,
+}
+
+pub enum SearchActorStatus {
+    Running,
+    Idle,
+    Stopped,
 }
 
 // project_idに紐ずく複数クエリで検索エンジンに検索をかけにいくactor
@@ -109,24 +120,38 @@ impl Handler<Message> for SearchActor {
                             .map(|res, actor, ctx| res),
                         )
                     }
-                    Message::CheckRunning => {
-                        let reply_to = Arc::clone(&self.reply_to);
-                        let project_id = self.project_id;
-                        debug!("search-actor: {:?}-{:?}", std::thread::current().name(), std::thread::current().id());
-                        let message_count = ctx.parts().curr_handle().into_usize();
-                        let search_actor_address = Arc::new(ctx.address());
-                        Box::pin(
-                            async move {
-                                debug!("message_count: {}", message_count);
-                                if message_count == 0usize {
-                                    reply_to.send(supervisor_actor::Message::TerminatedChildActor {project_id, reply_to: search_actor_address}).await;
-                                }
-                            }
-                            .into_actor(self)
-                            .map(|res, actor, ctx| Ok(res)),
-                        )
-                    }
                 }
+            }
+        }
+    }
+}
+
+impl Handler<CheckStatusMessage> for SearchActor {
+    type Result = ResponseActFuture<Self, Result<SearchActorStatus, Error>>;
+
+    fn handle(&mut self, msg: CheckStatusMessage, ctx: &mut Self::Context) -> Self::Result {
+        match msg {
+            CheckStatusMessage::Check => {
+                let message_count = ctx.parts().curr_handle().into_usize();
+                Box::pin(
+                    async move {
+                        debug!("message_count: {}", message_count);
+                        if message_count == 0usize {
+                            // stopすると対象アクターのaddress等がdropされる
+                            SearchActorStatus::Idle
+                        } else {
+                            SearchActorStatus::Running
+                        }
+                    }
+                    .into_actor(self)
+                    .map(|res, actor, ctx| {
+                        match res {
+                            SearchActorStatus::Idle => ctx.stop(),
+                            _ => (),
+                        };
+                        Ok(res)
+                    }),
+                )
             }
         }
     }

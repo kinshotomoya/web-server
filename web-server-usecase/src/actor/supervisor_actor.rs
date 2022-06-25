@@ -1,5 +1,5 @@
 use crate::actor::search_actor;
-use crate::actor::search_actor::SearchActor;
+use crate::actor::search_actor::{SearchActor, SearchActorStatus};
 use actix::dev::MessageResponse;
 use actix::prelude::*;
 use actix::Actor;
@@ -24,10 +24,6 @@ pub enum Message {
         project_id: u64,
     },
     CompletedSearch,
-    TerminatedChildActor {
-        project_id: u64,
-        reply_to: Arc<Addr<SearchActor>>
-    },
     CheckSearchActor, // searchActorの生存確認を行うメッセージ。timerActorから投げられる
     LoopExecute {
         child_actors: Arc<Mutex<HashMap<u64, Addr<SearchActor>>>>,
@@ -117,20 +113,10 @@ impl SuperVisorActor {
                 debug!("complete!");
                 Ok(())
             }
-            Message::TerminatedChildActor { project_id, reply_to } => {
-                // TODO: search actorが停止した時の実装
-                //   有効期限切れで停止した時にこのメッセージがsearch actorから投げられる（未実装）
-                debug!("cdcddcdcdc");
-                // reply_to.send()
-                Ok(())
-            }
             Message::CheckSearchActor => {
                 // 保持しているsearchActorに生存確認messageを投げる
                 // スレッドを占有しないようにfor文で投げるんじゃなくて、再帰で投げる
                 // 自分自身にmessageを投げる
-                // TODO: なぜclonedしたらcollect()できるようになったのか理解する
-                // TODO: child_actorssをloopExecute messageに投げてそっから再帰するようにする
-                let child_actorss: Vec<Addr<SearchActor>> = child_actors.lock().unwrap().values().cloned().collect();
                 let res: Result<(), Error> = reply_to
                     .send(Message::LoopExecute { child_actors })
                     .await
@@ -145,9 +131,14 @@ impl SuperVisorActor {
                     let key = locked_map.keys().next().copied().unwrap_or(0); // copied()・・・Option<&A> -> Option<A>
                     let search_actor_address = locked_map.get(&key);
                     if let Some(search_actor) = search_actor_address {
-                        search_actor.send(search_actor::Message::CheckRunning).await;
-                        // TODO: ここでremoveしてしまうとcheckRunningでまだ動作中のsearchActorまで消してしまうことになる。。
-                        locked_map.remove(&key);
+                        let res: SearchActorStatus = search_actor
+                            .send(search_actor::CheckStatusMessage::Check)
+                            .await
+                            .map_err(|e| Error::SupervisorActorMailBoxError(e.to_string()))??;
+                        match res {
+                            SearchActorStatus::Idle => locked_map.remove(&key),
+                            _ => None,
+                        };
                     }
                     drop(locked_map);
                     // NOTE: ↓でさらにLoopExecute messageを投げることで、locked_mapがdead lockを起こしていたので、スレッドが止まってしまっていた。
