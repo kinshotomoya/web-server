@@ -15,7 +15,6 @@ pub struct MysqlClient {
 }
 
 impl MysqlClient {
-    // TODO: Settingからmysql urlを取得するようにする
     pub fn new(settings: &Settings) -> MysqlClient {
         // settingsの参照を受け取っているので、settings.database.urlとsettingsの内部フィールドの所有権だけmoveすることはできない
         let manager = ConnectionManager::<MysqlConnection>::new(&settings.database.url);

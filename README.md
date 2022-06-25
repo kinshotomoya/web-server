@@ -1,9 +1,11 @@
 # web-server
 
 ### 実装すること
-- mysql接続
-- httpリクエスト
-- actor
+- [x] mysql接続
+- [x] httpリクエスト
+- [x] actor
+- [ ] search engine(https://docs.rs/tantivy/latest/tantivy/)
+- [ ] 
 
 ## 準備
 diesel cliをインストール
