@@ -141,7 +141,7 @@ impl SuperVisorActor {
                         };
                     }
                     drop(locked_map);
-                    // NOTE: ↓でさらにLoopExecute messageを投げることで、locked_mapがdead lockを起こしていたので、スレッドが止まってしまっていた。
+                    // NOTE: ↓でさらにLoopExecute messageを投げることで、locked_mapがdead lockを起こしていたので、スレッドが止まってしまっていた。（ロックを保持したままなので、他のfutureがlockを取得するためにまちが発生）
                     // 明示的にlockを解消するためにdropさせている。
                     reply_to.send(Message::LoopExecute { child_actors }).await;
                 } else {
